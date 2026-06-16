@@ -1,0 +1,235 @@
+ <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Inventory Management</h1>
+          <p class="page-subtitle">Add, edit and manage your medicine stock</p>
+        </div>
+        <button class="btn btn--primary" (click)="openAddModal()">+ Add Medicine</button>
+      </header>
+
+      <!-- Products Grid Summary -->
+      <div class="inventory-summary">
+        <div class="summary-stat">
+          <span class="summary-stat__val">{{ products().length }}</span>
+          <span class="summary-stat__label">Products Loaded</span>
+        </div>
+      </div>
+
+      <!-- Products Cards Grid -->
+      @if (loading()) {
+        <div class="products-grid">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="product-card skeleton-card">
+              <div class="skeleton skeleton--title"></div>
+              <div class="skeleton skeleton--line mt-8"></div>
+              <div class="skeleton skeleton--line mt-4"></div>
+              <div class="skeleton skeleton--sm mt-12"></div>
+            </div>
+          }
+        </div>
+      } @else if (products().length === 0) {
+        <div class="empty-state">
+          <div class="empty-state__icon">💊</div>
+          <h3>No medicines yet</h3>
+          <p>Add your first medicine to start managing inventory.</p>
+          <button class="btn btn--primary" (click)="openAddModal()">+ Add First Medicine</button>
+        </div>
+      } @else {
+        <div class="products-grid">
+          @for (p of products(); track p._id) {
+            <div class="product-card" [class.product-card--expiring]="isExpiringSoon(p.expDate)" [class.product-card--expired]="isExpired(p.expDate)">
+              <div class="product-card__top">
+                <div class="product-card__name">{{ p.productName }}</div>
+                @if (p.sch) { <span class="sch-pill">{{ p.sch }}</span> }
+              </div>
+              <div class="product-card__company">{{ p.mfgCompany }}</div>
+              <div class="product-card__meta">
+                <span class="meta-item"><strong>Batch:</strong> {{ p.batch }}</span>
+                <span class="meta-item"><strong>HSN:</strong> {{ p.hsnNo }}</span>
+                @if (p.pack) { <span class="meta-item"><strong>Pack:</strong> {{ p.pack }}</span> }
+              </div>
+              <div class="product-card__pricing">
+                <div class="price-row">
+                  <span class="price-label">MRP</span>
+                  <span class="price-val">₹{{ p.mrp | number:'1.2-2' }}</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Rate</span>
+                  <span class="price-val">₹{{ p.rate | number:'1.2-2' }}</span>
+                </div>
+              </div>
+              <div class="product-card__footer">
+                <div class="exp-qty">
+                  <span class="exp-date" [class.exp-date--warn]="isExpiringSoon(p.expDate)" [class.exp-date--danger]="isExpired(p.expDate)">
+                    Exp: {{ p.expDate | date:'MMM yyyy' }}
+                  </span>
+                  <span class="qty-chip" [class.qty-chip--low]="p.quantity < 5">Qty: {{ p.quantity }}</span>
+                </div>
+                <div class="card-actions">
+                  <button class="icon-btn icon-btn--edit" (click)="openEditModal(p)" title="Edit">✏</button>
+                  <button class="icon-btn icon-btn--delete" (click)="confirmDelete(p)" title="Delete">🗑</button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Load More -->
+      @if (hasMore()) {
+        <div class="load-more-wrap">
+          <button class="btn btn--ghost" (click)="loadMore()" [disabled]="loading()">
+            Load More Products
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Add/Edit Modal -->
+    @if (showModal()) {
+      <div class="modal-overlay" @fadeIn (click)="closeModal()">
+        <div class="modal" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ editMode() ? 'Edit Medicine' : 'Add New Medicine' }}</h2>
+            <button class="modal__close" (click)="closeModal()">✕</button>
+          </div>
+
+          <form [formGroup]="productForm" (ngSubmit)="submitForm()" class="product-form">
+            <div class="form-grid">
+              <!-- Row 1 -->
+              <div class="field field--span2">
+                <label class="field__label">Product Name <span class="req">*</span></label>
+                <input formControlName="productName" type="text" class="field__input"
+                  [class.field__input--error]="isInvalid('productName')"
+                  placeholder="e.g. Paracetamol 500mg" />
+                @if (isInvalid('productName')) { <span class="field__error">Product name is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">HSN No. <span class="req">*</span></label>
+                <input formControlName="hsnNo" type="text" class="field__input"
+                  [class.field__input--error]="isInvalid('hsnNo')"
+                  placeholder="3004" />
+                @if (isInvalid('hsnNo')) { <span class="field__error">HSN No. is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Mfg. Company <span class="req">*</span></label>
+                <input formControlName="mfgCompany" type="text" class="field__input"
+                  [class.field__input--error]="isInvalid('mfgCompany')"
+                  placeholder="e.g. Cipla Ltd" />
+                @if (isInvalid('mfgCompany')) { <span class="field__error">Company is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Batch No. <span class="req">*</span></label>
+                <input formControlName="batch" type="text" class="field__input"
+                  [class.field__input--error]="isInvalid('batch')"
+                  placeholder="e.g. B2024001" />
+                @if (isInvalid('batch')) { <span class="field__error">Batch is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Pack</label>
+                <input formControlName="pack" type="text" class="field__input" placeholder="e.g. 10x10" />
+              </div>
+
+              <div class="field">
+                <label class="field__label">Schedule (Sch)</label>
+                <select formControlName="sch" class="field__input field__select">
+                  <option value="">None</option>
+                  @for (s of schedules; track s) { <option [value]="s">{{ s }}</option> }
+                </select>
+              </div>
+
+              <div class="field">
+                <label class="field__label">Expiry Date <span class="req">*</span></label>
+                <input formControlName="expDate" type="month" class="field__input"
+                  [class.field__input--error]="isInvalid('expDate')" />
+                @if (isInvalid('expDate')) { <span class="field__error">Expiry date is required.</span> }
+              </div>
+
+              <!-- Pricing Row -->
+              <div class="field">
+                <label class="field__label">MRP (₹) <span class="req">*</span></label>
+                <input formControlName="mrp" type="number" step="0.01" min="0" class="field__input"
+                  [class.field__input--error]="isInvalid('mrp')" placeholder="0.00" />
+                @if (isInvalid('mrp')) { <span class="field__error">Valid MRP is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Rate (₹) <span class="req">*</span></label>
+                <input formControlName="rate" type="number" step="0.01" min="0" class="field__input"
+                  [class.field__input--error]="isInvalid('rate')" placeholder="0.00"
+                  (input)="recalcTax()" />
+                @if (isInvalid('rate')) { <span class="field__error">Valid rate is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Quantity <span class="req">*</span></label>
+                <input formControlName="quantity" type="number" min="0" step="1" class="field__input"
+                  [class.field__input--error]="isInvalid('quantity')" placeholder="0" />
+                @if (isInvalid('quantity')) { <span class="field__error">Quantity is required.</span> }
+              </div>
+
+              <div class="field">
+                <label class="field__label">Discount %</label>
+                <input formControlName="discPercent" type="number" min="0" max="100" step="0.01" class="field__input"
+                  placeholder="0" (input)="recalcTax()" />
+              </div>
+
+              <!-- GST Row -->
+              <div class="field">
+                <label class="field__label">CGST %</label>
+                <input formControlName="cgstPercent" type="number" min="0" step="0.5" class="field__input"
+                  placeholder="0" (input)="recalcTax()" />
+              </div>
+
+              <div class="field">
+                <label class="field__label">SGST %</label>
+                <input formControlName="sgstPercent" type="number" min="0" step="0.5" class="field__input"
+                  placeholder="0" (input)="recalcTax()" />
+              </div>
+            </div>
+
+            <!-- Auto-calculated preview -->
+            @if (taxPreview()) {
+              <div class="tax-preview">
+                <div class="tax-preview__title">Tax Calculation Preview</div>
+                <div class="tax-preview__grid">
+                  <div class="tax-item"><span>Taxable Amount</span><strong>₹{{ taxPreview()!.taxable | number:'1.2-2' }}</strong></div>
+                  <div class="tax-item"><span>CGST ({{ productForm.get('cgstPercent')?.value || 0 }}%)</span><strong>₹{{ taxPreview()!.cgst | number:'1.2-2' }}</strong></div>
+                  <div class="tax-item"><span>SGST ({{ productForm.get('sgstPercent')?.value || 0 }}%)</span><strong>₹{{ taxPreview()!.sgst | number:'1.2-2' }}</strong></div>
+                  <div class="tax-item tax-item--total"><span>Total (per unit)</span><strong>₹{{ taxPreview()!.total | number:'1.2-2' }}</strong></div>
+                </div>
+              </div>
+            }
+
+            <div class="form-actions">
+              <button type="button" class="btn btn--ghost" (click)="closeModal()">Cancel</button>
+              <button type="submit" class="btn btn--primary" [disabled]="saveLoading()">
+                @if (saveLoading()) { <span class="btn-spinner"></span> }
+                {{ saveLoading() ? 'Saving...' : (editMode() ? 'Update Medicine' : 'Add Medicine') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    <!-- Delete Confirm -->
+    @if (showDeleteModal()) {
+      <div class="modal-overlay" @fadeIn (click)="closeDeleteModal()">
+        <div class="modal modal--sm" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__icon">🗑</div>
+          <h3 class="modal__title">Delete Medicine</h3>
+          <p class="modal__desc">Delete <strong>{{ deleteTarget()?.productName }}</strong>? This cannot be undone.</p>
+          <div class="modal__actions">
+            <button class="btn btn--ghost" (click)="closeDeleteModal()">Cancel</button>
+            <button class="btn btn--danger" (click)="deleteProduct()" [disabled]="deleteLoading()">
+              {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }

@@ -1,0 +1,78 @@
+  <div class="auth-page">
+      <div class="auth-bg">
+        <div class="bg-blob bg-blob--1"></div>
+        <div class="bg-blob bg-blob--2"></div>
+      </div>
+
+      <div class="auth-card" @formEnter>
+        <div class="auth-card__header">
+          <div class="auth-logo">⚕</div>
+          <h1 class="auth-title">Create Account</h1>
+          <p class="auth-subtitle">Join PharmaTrack Pro</p>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+          <div class="field">
+            <label class="field__label">Full Name</label>
+            <input type="text" formControlName="name" class="field__input"
+              [class.field__input--error]="isInvalid('name')"
+              placeholder="Dr. John Doe" />
+            @if (isInvalid('name')) {
+              <span class="field__error">Name is required (min 2 characters).</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label">Email Address</label>
+            <input type="email" formControlName="email" class="field__input"
+              [class.field__input--error]="isInvalid('email')"
+              placeholder="email@pharmacy.com" />
+            @if (isInvalid('email')) {
+              <span class="field__error">Valid email is required.</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label">Role</label>
+            <select formControlName="role" class="field__input field__select">
+              <option value="pharmacist">Pharmacist</option>
+              <option value="billing">Billing Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label">Password</label>
+            <input type="password" formControlName="password" class="field__input"
+              [class.field__input--error]="isInvalid('password')"
+              placeholder="Min. 6 characters" />
+            @if (isInvalid('password')) {
+              <span class="field__error">Password must be at least 6 characters.</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label">Confirm Password</label>
+            <input type="password" formControlName="confirmPassword" class="field__input"
+              [class.field__input--error]="isInvalid('confirmPassword') || (form.hasError('passwordMismatch') && form.touched)"
+              placeholder="Repeat password" />
+            @if (form.hasError('passwordMismatch') && form.touched) {
+              <span class="field__error">Passwords do not match.</span>
+            }
+          </div>
+
+          <button type="submit" class="btn-submit" [disabled]="loading()">
+            @if (loading()) {
+              <span class="btn-spinner"></span> Creating account...
+            } @else {
+              Create Account
+            }
+          </button>
+        </form>
+
+        <p class="auth-switch">
+          Already have an account?
+          <a routerLink="/auth/login" class="auth-link">Sign in</a>
+        </p>
+      </div>
+    </div>

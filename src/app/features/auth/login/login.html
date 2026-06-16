@@ -1,0 +1,54 @@
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="bg-blob bg-blob--1"></div>
+    <div class="bg-blob bg-blob--2"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <div class="auth-card" @formEnter>
+    <div class="auth-card__header">
+      <div class="auth-logo">⚕</div>
+      <h1 class="auth-title">PharmaTrack</h1>
+      <p class="auth-subtitle">Sign in to your account</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="field">
+        <label class="field__label" for="email">Email address</label>
+        <input id="email" type="email" formControlName="email" class="field__input"
+          [class.field__input--error]="isInvalid('email')" placeholder="pharmacist@clinic.com" autocomplete="email" />
+        @if (isInvalid('email')) {
+        <span class="field__error">Please enter a valid email.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="password">Password</label>
+        <div class="field__input-wrap">
+          <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+            class="field__input" [class.field__input--error]="isInvalid('password')" placeholder="••••••••"
+            autocomplete="current-password" />
+          <button type="button" class="field__eye" (click)="showPassword.set(!showPassword())">{{ showPassword() ? '🙈'
+            : '👁' }}</button>
+        </div>
+        @if (isInvalid('password')) {
+        <span class="field__error">Password is required.</span>
+        }
+      </div>
+
+      <button type="submit" class="btn-submit" [disabled]="loading()">
+        @if (loading()) {
+        <span class="btn-spinner"></span>
+        Signing in...
+        } @else {
+        Sign In
+        }
+      </button>
+    </form>
+
+    <p class="auth-switch">
+      Don't have an account?
+      <a routerLink="/auth/register" class="auth-link">Create account</a>
+    </p>
+  </div>
+</div>

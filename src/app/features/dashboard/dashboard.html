@@ -1,0 +1,244 @@
+ <div class="dashboard">
+      <!-- Page Header -->
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Inventory Dashboard</h1>
+          <p class="page-subtitle">{{ today | date:'EEEE, d MMMM yyyy' }}</p>
+        </div>
+        <div class="header-actions">
+          <a routerLink="/inventory" class="btn btn--primary">+ Add Medicine</a>
+        </div>
+      </header>
+
+      <!-- KPI Cards -->
+      @if (statsLoading()) {
+        <div class="kpi-grid" @cardStagger>
+          @for (i of [1,2,3,4]; track i) {
+            <div class="kpi-card skeleton-card">
+              <div class="skeleton skeleton--sm"></div>
+              <div class="skeleton skeleton--lg mt-8"></div>
+              <div class="skeleton skeleton--sm mt-4"></div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="kpi-grid" @cardStagger>
+          <div class="kpi-card kpi-card--default"
+            [class.kpi-card--active]="activeFilter() === 'none'"
+            (click)="clearFilter()">
+            <div class="kpi-card__icon kpi-card__icon--blue">◫</div>
+            <div class="kpi-card__value">{{ stats()?.totalProducts ?? 0 }}</div>
+            <div class="kpi-card__label">Total Products</div>
+            <div class="kpi-card__sub">In inventory</div>
+          </div>
+
+          <div class="kpi-card kpi-card--warning"
+            [class.kpi-card--active]="activeFilter() === 'expiring'"
+            (click)="setFilter('expiring')">
+            <div class="kpi-card__icon kpi-card__icon--yellow">⏰</div>
+            <div class="kpi-card__value">{{ stats()?.expiringSoon ?? 0 }}</div>
+            <div class="kpi-card__label">Expiring Soon</div>
+            <div class="kpi-card__sub">Within 30 days ↗</div>
+          </div>
+
+          <div class="kpi-card kpi-card--danger"
+            [class.kpi-card--active]="activeFilter() === 'lowstock'"
+            (click)="setFilter('lowstock')">
+            <div class="kpi-card__icon kpi-card__icon--red">⚠</div>
+            <div class="kpi-card__value">{{ stats()?.lowStock ?? 0 }}</div>
+            <div class="kpi-card__label">Low Stock Alert</div>
+            <div class="kpi-card__sub">Qty &lt; 5 ↗</div>
+          </div>
+
+          <div class="kpi-card kpi-card--success">
+            <div class="kpi-card__icon kpi-card__icon--green">₹</div>
+            <div class="kpi-card__value">{{ (stats()?.totalInventoryValue ?? 0) | currency:'INR':'symbol':'1.0-0' }}</div>
+            <div class="kpi-card__label">Inventory Value</div>
+            <div class="kpi-card__sub">At MRP</div>
+          </div>
+        </div>
+      }
+
+      <!-- Active Filter Chip -->
+      @if (activeFilter() !== 'none') {
+        <div class="filter-chip-row" @fadeIn>
+          <div class="filter-chip">
+            <span>{{ activeFilter() === 'expiring' ? '⏰ Showing: Expiring Soon' : '⚠ Showing: Low Stock Items' }}</span>
+            <button class="filter-chip__close" (click)="clearFilter()">✕ Clear</button>
+          </div>
+        </div>
+      }
+
+      <!-- Search & Filters Bar -->
+      <div class="search-bar">
+        <div class="search-field">
+          <span class="search-icon">⌕</span>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)"
+            placeholder="Search by name, company, HSN, batch..."
+            class="search-input"
+          />
+          @if (searchQuery) {
+            <button class="search-clear" (click)="clearSearch()">✕</button>
+          }
+        </div>
+        <div class="filter-controls">
+          <select [(ngModel)]="filterSch" (ngModelChange)="loadProducts()" class="filter-select">
+            <option value="">All Schedules</option>
+            <option value="H">H</option>
+            <option value="H1">H1</option>
+            <option value="X">X</option>
+            <option value="OTC">OTC</option>
+            <option value="G">G</option>
+          </select>
+          <select [(ngModel)]="sortField" (ngModelChange)="loadProducts()" class="filter-select">
+            <option value="createdAt">Sort: Date Added</option>
+            <option value="productName">Sort: Name</option>
+            <option value="expDate">Sort: Expiry</option>
+            <option value="mrp">Sort: MRP</option>
+            <option value="quantity">Sort: Quantity</option>
+          </select>
+          <button class="sort-toggle" (click)="toggleOrder()">
+            {{ sortOrder === 'asc' ? '↑ ASC' : '↓ DESC' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Inventory Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <h2 class="table-title">
+            Medicine Inventory
+            @if (pagination()) {
+              <span class="record-count">{{ pagination()!.total }} records</span>
+            }
+          </h2>
+          <div class="table-actions">
+            <a routerLink="/billing" class="btn btn--ghost btn--sm">🧾 New Bill</a>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          @if (tableLoading()) {
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product Name</th><th>HSN</th><th>Company</th><th>Batch</th>
+                  <th>Pack</th><th>Sch</th><th>Exp Date</th><th>MRP</th><th>Rate</th>
+                  <th>Qty</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of [1,2,3,4,5,6,7]; track r) {
+                  <tr>
+                    @for (c of [1,2,3,4,5,6,7,8,9,10,11]; track c) {
+                      <td><div class="skeleton skeleton--row"></div></td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else if (products().length === 0) {
+            <div class="empty-state" @fadeIn>
+              <div class="empty-state__icon">◫</div>
+              <h3 class="empty-state__title">No medicines found</h3>
+              <p class="empty-state__desc">
+                {{ activeFilter() !== 'none' ? 'No items match this filter.' : 'Add your first medicine to get started.' }}
+              </p>
+              @if (activeFilter() !== 'none') {
+                <button class="btn btn--ghost" (click)="clearFilter()">Clear Filter</button>
+              } @else {
+                <a routerLink="/inventory" class="btn btn--primary">Add Medicine</a>
+              }
+            </div>
+          } @else {
+            <table class="data-table" [@tableRowsIn]="products().length">
+              <thead>
+                <tr>
+                  <th>Product Name</th><th>HSN No.</th><th>Mfg. Company</th><th>Batch</th>
+                  <th>Pack</th><th>Sch</th><th>Exp Date</th><th>MRP (₹)</th><th>Rate (₹)</th>
+                  <th>Disc %</th><th>CGST%</th><th>SGST%</th><th>Qty</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (product of products(); track product._id) {
+                  <tr
+                    class="table-row"
+                    [class.row--expiring]="isExpiringSoon(product.expDate)"
+                    [class.row--expired]="isExpired(product.expDate)"
+                    [class.row--lowstock]="product.quantity < 5"
+                  >
+                    <td class="td--name">
+                      <span class="product-name">{{ product.productName }}</span>
+                    </td>
+                    <td class="td--mono">{{ product.hsnNo }}</td>
+                    <td>{{ product.mfgCompany }}</td>
+                    <td class="td--mono">{{ product.batch }}</td>
+                    <td>{{ product.pack || '—' }}</td>
+                    <td>
+                      @if (product.sch) {
+                        <span class="sch-badge sch-badge--{{ product.sch.toLowerCase() }}">{{ product.sch }}</span>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
+                    <td [class.td--expiring]="isExpiringSoon(product.expDate)" [class.td--expired]="isExpired(product.expDate)">
+                      {{ product.expDate | date:'MMM yyyy' }}
+                    </td>
+                    <td class="td--number">{{ product.mrp | number:'1.2-2' }}</td>
+                    <td class="td--number">{{ product.rate | number:'1.2-2' }}</td>
+                    <td class="td--number">{{ product.discPercent || 0 }}%</td>
+                    <td class="td--number">{{ product.cgstPercent || 0 }}%</td>
+                    <td class="td--number">{{ product.sgstPercent || 0 }}%</td>
+                    <td>
+                      <span class="qty-badge" [class.qty-badge--low]="product.quantity < 5" [class.qty-badge--ok]="product.quantity >= 5">
+                        {{ product.quantity }}
+                      </span>
+                    </td>
+                    <td class="td--actions">
+                      <button class="action-btn action-btn--edit" (click)="editProduct(product)" title="Edit">✏</button>
+                      <button class="action-btn action-btn--delete" (click)="confirmDelete(product)" title="Delete">🗑</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (pagination() && pagination()!.totalPages > 1) {
+          <div class="pagination" @fadeIn>
+            <button class="page-btn" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">← Prev</button>
+            @for (p of pageNumbers(); track p) {
+              <button
+                class="page-btn"
+                [class.page-btn--active]="p === currentPage()"
+                (click)="goToPage(p)"
+              >{{ p }}</button>
+            }
+            <button class="page-btn" [disabled]="currentPage() === pagination()!.totalPages" (click)="goToPage(currentPage() + 1)">Next →</button>
+            <span class="page-info">Page {{ currentPage() }} of {{ pagination()!.totalPages }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    @if (showDeleteModal()) {
+      <div class="modal-overlay" @fadeIn (click)="closeDeleteModal()">
+        <div class="modal modal--sm" (click)="$event.stopPropagation()">
+          <div class="modal__icon modal__icon--danger">🗑</div>
+          <h3 class="modal__title">Delete Medicine</h3>
+          <p class="modal__desc">Are you sure you want to delete <strong>{{ deleteTarget()?.productName }}</strong>? This action cannot be undone.</p>
+          <div class="modal__actions">
+            <button class="btn btn--ghost" (click)="closeDeleteModal()">Cancel</button>
+            <button class="btn btn--danger" (click)="deleteProduct()" [disabled]="deleteLoading()">
+              {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
