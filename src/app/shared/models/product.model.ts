@@ -1,9 +1,21 @@
-// src/app/shared/models/product.model.ts
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  role: 'admin' | 'pharmacist' | 'billing';
+  isVerified: boolean;
+}
+
 export interface Product {
   _id?: string;
   productName: string;
   hsnNo: string;
   mfgCompany: string;
+  supplierId?: string;
+  supplierName?: string;
+  supplierAddress?: string;
   batch: string;
   pack?: string;
   sch?: string;
@@ -65,7 +77,6 @@ export interface Pagination {
   totalPages: number;
 }
 
-// Billing Models
 export interface BillItem {
   productId: string;
   productName: string;
@@ -117,13 +128,52 @@ export interface Transaction {
   createdAt?: Date;
 }
 
-export interface User {
-  id: string;
+export interface Supplier {
+  _id?: string;
   name: string;
-  email: string;
-  role: 'admin' | 'pharmacist' | 'billing';
+  contactPerson?: string;
+  email?: string;
+  phone: string;
+  alternatePhone?: string;
+  gstNo?: string;
+  drugLicenseNo?: string;
+  address: {
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  fullAddress?: string;
+  isActive?: boolean;
 }
 
-export type SortOrder = 'asc' | 'desc';
+export interface Customer {
+  _id?: string;
+  name: string;
+  phone: string;
+  alternatePhone?: string;
+  email?: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  doctorName?: string;
+  address?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
+  fullAddress?: string;
+  totalBills?: number;
+  totalSpend?: number;
+  isActive?: boolean;
+}
 
 export const SCHEDULE_OPTIONS = ['H', 'H1', 'X', 'G', 'C', 'C1', 'OTC'];
+export const INDIAN_STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
+  'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
+  'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab',
+  'Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh',
+  'Uttarakhand','West Bengal','Delhi','Jammu & Kashmir','Ladakh',
+];

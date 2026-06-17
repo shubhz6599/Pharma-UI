@@ -1,78 +1,153 @@
   <div class="auth-page">
       <div class="auth-bg">
-        <div class="bg-blob bg-blob--1"></div>
-        <div class="bg-blob bg-blob--2"></div>
+        <div class="blob blob--1"></div>
+        <div class="blob blob--2"></div>
+        <div class="auth-grid"></div>
       </div>
 
-      <div class="auth-card" @formEnter>
-        <div class="auth-card__header">
+      <div class="auth-card" @cardAnim>
+        <div class="auth-brand">
           <div class="auth-logo">⚕</div>
-          <h1 class="auth-title">Create Account</h1>
-          <p class="auth-subtitle">Join PharmaTrack Pro</p>
+          <h1 class="auth-app-name">PharmaTrack <span>Pro</span></h1>
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
-          <div class="field">
-            <label class="field__label">Full Name</label>
-            <input type="text" formControlName="name" class="field__input"
-              [class.field__input--error]="isInvalid('name')"
-              placeholder="Dr. John Doe" />
-            @if (isInvalid('name')) {
-              <span class="field__error">Name is required (min 2 characters).</span>
-            }
+        <!-- Progress indicator -->
+        <div class="progress-bar">
+          <div class="progress-step" [class.active]="true" [class.done]="step() === 'otp'">
+            <span class="step-dot">{{ step() === 'otp' ? '✓' : '1' }}</span>
+            <span class="step-label-txt">Details</span>
           </div>
-
-          <div class="field">
-            <label class="field__label">Email Address</label>
-            <input type="email" formControlName="email" class="field__input"
-              [class.field__input--error]="isInvalid('email')"
-              placeholder="email@pharmacy.com" />
-            @if (isInvalid('email')) {
-              <span class="field__error">Valid email is required.</span>
-            }
+          <div class="progress-line" [class.done]="step() === 'otp'"></div>
+          <div class="progress-step" [class.active]="step() === 'otp'">
+            <span class="step-dot">2</span>
+            <span class="step-label-txt">Verify</span>
           </div>
+        </div>
 
-          <div class="field">
-            <label class="field__label">Role</label>
-            <select formControlName="role" class="field__input field__select">
-              <option value="pharmacist">Pharmacist</option>
-              <option value="billing">Billing Staff</option>
-              <option value="admin">Admin</option>
-            </select>
+        <!-- ═══ STEP 1: Registration Form ═══ -->
+        @if (step() === 'form') {
+          <div @stepAnim>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-sub">Fill in your details to get started</p>
+
+            <form [formGroup]="form" (ngSubmit)="onRegister()" class="auth-form">
+              <div class="form-row">
+                <div class="field">
+                  <label class="field__label">Full Name <span class="req">*</span></label>
+                  <input formControlName="name" type="text" class="field__input"
+                    [class.field__input--error]="fi('name')" placeholder="Dr. Ravi Sharma" />
+                  @if (fi('name')) { <span class="field__error">Full name is required (min 2 chars).</span> }
+                </div>
+                <div class="field">
+                  <label class="field__label">Username <span class="req">*</span></label>
+                  <input formControlName="username" type="text" class="field__input"
+                    [class.field__input--error]="fi('username')" placeholder="ravi_pharma"
+                    autocomplete="username" />
+                  @if (fi('username')) { <span class="field__error">Username must be 3+ chars, letters/numbers/_ only.</span> }
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="field">
+                  <label class="field__label">Email <span class="req">*</span></label>
+                  <input formControlName="email" type="email" class="field__input"
+                    [class.field__input--error]="fi('email')" placeholder="ravi@pharma.com" />
+                  @if (fi('email')) { <span class="field__error">Valid email is required.</span> }
+                </div>
+                <div class="field">
+                  <label class="field__label">Mobile Number <span class="req">*</span></label>
+                  <div class="phone-wrap">
+                    <span class="phone-prefix">+91</span>
+                    <input formControlName="phone" type="tel" class="field__input phone-input"
+                      [class.field__input--error]="fi('phone')" placeholder="9876543210" maxlength="10" />
+                  </div>
+                  @if (fi('phone')) { <span class="field__error">Valid 10-digit Indian mobile number required.</span> }
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label">Role</label>
+                <select formControlName="role" class="field__input">
+                  <option value="pharmacist">Pharmacist</option>
+                  <option value="billing">Billing Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="field">
+                  <label class="field__label">Password <span class="req">*</span></label>
+                  <div class="input-wrap">
+                    <input formControlName="password" [type]="showPwd() ? 'text' : 'password'"
+                      class="field__input" [class.field__input--error]="fi('password')"
+                      placeholder="Min. 8 characters" />
+                    <button type="button" class="eye-btn" (click)="showPwd.set(!showPwd())">{{ showPwd() ? '🙈' : '👁' }}</button>
+                  </div>
+                  @if (fi('password')) { <span class="field__error">Password must be at least 8 characters.</span> }
+                </div>
+                <div class="field">
+                  <label class="field__label">Confirm Password <span class="req">*</span></label>
+                  <input formControlName="confirmPassword" type="password" class="field__input"
+                    [class.field__input--error]="form.hasError('mismatch') && form.touched"
+                    placeholder="Repeat password" />
+                  @if (form.hasError('mismatch') && form.touched) {
+                    <span class="field__error">Passwords do not match.</span>
+                  }
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-sm"></span> Creating account... }
+                @else { Create Account & Send OTP }
+              </button>
+            </form>
+
+            <p class="auth-footer">
+              Already have an account? <a routerLink="/auth/login" class="auth-link">Sign In</a>
+            </p>
           </div>
+        }
 
-          <div class="field">
-            <label class="field__label">Password</label>
-            <input type="password" formControlName="password" class="field__input"
-              [class.field__input--error]="isInvalid('password')"
-              placeholder="Min. 6 characters" />
-            @if (isInvalid('password')) {
-              <span class="field__error">Password must be at least 6 characters.</span>
-            }
+        <!-- ═══ STEP 2: OTP Verification ═══ -->
+        @if (step() === 'otp') {
+          <div @stepAnim>
+            <h2 class="auth-title">Verify Your Email</h2>
+            <p class="auth-sub">
+              A 6-digit OTP was sent to <strong>{{ registeredEmail() }}</strong>.
+              Please enter it below to activate your account.
+            </p>
+
+            <div class="otp-boxes">
+              @for (i of [0,1,2,3,4,5]; track i) {
+                <input
+                  type="text" inputmode="numeric" maxlength="1"
+                  class="otp-box"
+                  [id]="'otp-' + i"
+                  [value]="otpDigits()[i] || ''"
+                  (input)="onOtpInput($event, i)"
+                  (keydown)="onOtpKeydown($event, i)"
+                  (paste)="onOtpPaste($event)"
+                  autocomplete="one-time-code"
+                />
+              }
+            </div>
+
+            <button class="btn-primary" (click)="onVerifyOtp()" [disabled]="loading() || otpDigits().join('').length < 6">
+              @if (loading()) { <span class="spinner-sm"></span> Verifying... }
+              @else { Verify & Complete Registration }
+            </button>
+
+            <div class="otp-actions">
+              <span class="otp-hint">Didn't receive the OTP?</span>
+              <button class="link-btn" (click)="onResendOtp()" [disabled]="resendCooldown() > 0">
+                Resend{{ resendCooldown() > 0 ? ' (' + resendCooldown() + 's)' : '' }}
+              </button>
+            </div>
+
+            <p class="auth-footer">
+              Wrong email? <button class="link-btn" (click)="step.set('form')">Go back</button>
+            </p>
           </div>
-
-          <div class="field">
-            <label class="field__label">Confirm Password</label>
-            <input type="password" formControlName="confirmPassword" class="field__input"
-              [class.field__input--error]="isInvalid('confirmPassword') || (form.hasError('passwordMismatch') && form.touched)"
-              placeholder="Repeat password" />
-            @if (form.hasError('passwordMismatch') && form.touched) {
-              <span class="field__error">Passwords do not match.</span>
-            }
-          </div>
-
-          <button type="submit" class="btn-submit" [disabled]="loading()">
-            @if (loading()) {
-              <span class="btn-spinner"></span> Creating account...
-            } @else {
-              Create Account
-            }
-          </button>
-        </form>
-
-        <p class="auth-switch">
-          Already have an account?
-          <a routerLink="/auth/login" class="auth-link">Sign in</a>
-        </p>
+        }
       </div>
     </div>

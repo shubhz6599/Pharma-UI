@@ -1,9 +1,9 @@
 // src/app/core/services/product.service.ts
-import { ApiResponse, Product, ProductFilter, DashboardStats, Bill } from '../../shared/models/product.model';
-import { environment } from '../../../environments/environment';
-import { inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { ApiResponse, Product, ProductFilter, DashboardStats } from '../../shared/models/product.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
@@ -40,46 +40,10 @@ export class ProductService {
     return this.http.delete<ApiResponse<null>>(`${this.apiUrl}/${id}`);
   }
 
-  updateStock(id: string, payload: { quantityChange: number; type: string; reference?: string; notes?: string }): Observable<ApiResponse<any>> {
+  updateStock(
+    id: string,
+    payload: { quantityChange: number; type: string; reference?: string; notes?: string }
+  ): Observable<ApiResponse<{ productId: string; quantityBefore: number; quantityAfter: number }>> {
     return this.http.patch<ApiResponse<any>>(`${this.apiUrl}/${id}/stock`, payload);
-  }
-}
-
-
-// src/app/core/services/billing.service.ts
-
-export interface GenerateBillPayload {
-  customerName?: string;
-  customerPhone?: string;
-  items: Array<{
-    productId: string;
-    quantity: number;
-    discPercent?: number;
-  }>;
-}
-
-@Injectable({ providedIn: 'root' })
-export class BillingService {
-  private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/billing`;
-
-  generateBill(payload: GenerateBillPayload): Observable<ApiResponse<Bill>> {
-    return this.http.post<ApiResponse<Bill>>(`${this.apiUrl}/generate`, payload);
-  }
-
-  getBills(params: Record<string, string> = {}): Observable<ApiResponse<Bill[]>> {
-    let httpParams = new HttpParams();
-    Object.entries(params).forEach(([k, v]) => { if (v) httpParams = httpParams.set(k, v); });
-    return this.http.get<ApiResponse<Bill[]>>(this.apiUrl, { params: httpParams });
-  }
-
-  getBill(id: string): Observable<ApiResponse<Bill>> {
-    return this.http.get<ApiResponse<Bill>>(`${this.apiUrl}/${id}`);
-  }
-
-  getTransactions(params: Record<string, string> = {}): Observable<ApiResponse<any[]>> {
-    let httpParams = new HttpParams();
-    Object.entries(params).forEach(([k, v]) => { if (v) httpParams = httpParams.set(k, v); });
-    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/transactions`, { params: httpParams });
   }
 }

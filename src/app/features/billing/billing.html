@@ -1,0 +1,415 @@
+  <div class="page-wrap">
+      <!-- Header -->
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Billing Counter</h1>
+          <p class="page-subtitle">Generate GST-compliant bills and manage transactions</p>
+        </div>
+        <div class="header-tabs">
+          <button
+            class="tab-btn"
+            [class.tab-btn--active]="activeTab() === 'new'"
+            (click)="activeTab.set('new')">
+            🧾 New Bill
+          </button>
+          <button
+            class="tab-btn"
+            [class.tab-btn--active]="activeTab() === 'history'"
+            (click)="switchToHistory()">
+            📋 Bill History
+          </button>
+        </div>
+      </header>
+
+      <!-- ═══════════════════════════════════════════
+           TAB: NEW BILL
+      ═══════════════════════════════════════════ -->
+      @if (activeTab() === 'new') {
+        <div class="billing-layout" @fadeIn>
+
+          <!-- LEFT COLUMN -->
+          <div class="billing-left">
+
+            <!-- Customer Info -->
+            <div class="section-card">
+              <div class="section-title">👤 Customer Details</div>
+              <div class="customer-row">
+                <div class="field">
+                  <label class="field__label">Customer Name</label>
+                  <input
+                    [(ngModel)]="customerName"
+                    type="text"
+                    class="field__input"
+                    placeholder="Walk-in Customer"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field__label">Phone Number</label>
+                  <input
+                    [(ngModel)]="customerPhone"
+                    type="tel"
+                    class="field__input"
+                    placeholder="9876543210"
+                    maxlength="10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Search -->
+            <div class="section-card">
+              <div class="section-title">💊 Search & Add Medicine</div>
+              <div class="search-wrap">
+                <span class="search-wrap__icon">⌕</span>
+                <input
+                  type="text"
+                  [(ngModel)]="productSearch"
+                  (ngModelChange)="onProductSearch($event)"
+                  class="field__input search-wrap__input"
+                  placeholder="Type medicine name, batch, company, HSN..."
+                  autocomplete="off"
+                />
+                @if (searchLoading()) {
+                  <span class="spinner spinner--sm search-wrap__spinner"></span>
+                }
+              </div>
+
+              @if (searchResults().length > 0) {
+                <div class="search-results" @slideDown>
+                  @for (product of searchResults(); track product._id) {
+                    <div
+                      class="search-result-item"
+                      (click)="addToCart(product)"
+                      [class.search-result-item--out]="product.quantity === 0">
+                      <div class="result-info">
+                        <span class="result-name">{{ product.productName }}</span>
+                        <span class="result-company">{{ product.mfgCompany }}</span>
+                      </div>
+                      <div class="result-meta">
+                        <span class="result-tag">Batch: {{ product.batch }}</span>
+                        <span class="result-tag" [class.result-tag--warn]="isExpiringSoon(product.expDate)" [class.result-tag--danger]="isExpired(product.expDate)">
+                          Exp: {{ product.expDate | date:'MMM yy' }}
+                        </span>
+                        <span class="result-tag" [class.result-tag--danger]="product.quantity < 5">
+                          Qty: {{ product.quantity }}
+                        </span>
+                        <span class="result-price">₹{{ product.mrp | number:'1.2-2' }}</span>
+                      </div>
+                      @if (product.quantity === 0) {
+                        <span class="out-of-stock">Out of Stock</span>
+                      } @else {
+                        <button class="add-btn" tabindex="-1">+ Add</button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (productSearch.length >= 2 && !searchLoading() && searchResults().length === 0) {
+                <div class="no-search-results">
+                  No medicines found for "{{ productSearch }}"
+                </div>
+              }
+            </div>
+
+            <!-- Cart / Bill Items -->
+            <div class="section-card">
+              <div class="cart-header-row">
+                <div class="section-title">🛒 Bill Items <span class="cart-count">{{ cart().length }}</span></div>
+                @if (cart().length > 0) {
+                  <button class="btn btn--ghost btn--xs" (click)="clearCart()">✕ Clear All</button>
+                }
+              </div>
+
+              @if (cart().length === 0) {
+                <div class="cart-empty">
+                  <span class="cart-empty__icon">🛒</span>
+                  <p>Search and add medicines above to build a bill.</p>
+                </div>
+              } @else {
+                <div class="cart-list" [@cartStagger]="cart().length">
+                  @for (item of cart(); track item.product._id; let idx = $index) {
+                    <div class="cart-item">
+                      <div class="cart-item__body">
+                        <div class="cart-item__name">{{ item.product.productName }}</div>
+                        <div class="cart-item__meta">
+                          {{ item.product.mfgCompany }} &middot; Batch: {{ item.product.batch }}
+                          &middot; MRP ₹{{ item.product.mrp | number:'1.2-2' }}
+                          &middot; Rate ₹{{ item.product.rate | number:'1.2-2' }}
+                        </div>
+                      </div>
+                      <div class="cart-item__controls">
+                        <!-- Quantity stepper -->
+                        <div class="qty-stepper">
+                          <button
+                            class="qty-stepper__btn"
+                            (click)="updateQty(idx, item.quantity - 1)"
+                            [disabled]="item.quantity <= 1">−</button>
+                          <input
+                            type="number"
+                            class="qty-stepper__input"
+                            [value]="item.quantity"
+                            (change)="updateQty(idx, +$any($event.target).value)"
+                            min="1"
+                            [max]="item.product.quantity"
+                          />
+                          <button
+                            class="qty-stepper__btn"
+                            (click)="updateQty(idx, item.quantity + 1)"
+                            [disabled]="item.quantity >= item.product.quantity">+</button>
+                        </div>
+                        <!-- Discount -->
+                        <div class="disc-wrap">
+                          <input
+                            type="number"
+                            class="disc-input"
+                            [value]="item.discPercent"
+                            (change)="updateDisc(idx, +$any($event.target).value)"
+                            min="0" max="100" placeholder="0"
+                          />
+                          <span class="disc-label">% disc</span>
+                        </div>
+                        <!-- Line total -->
+                        <span class="line-total">₹{{ calcItemTotal(item) | number:'1.2-2' }}</span>
+                        <!-- Remove -->
+                        <button class="remove-btn" (click)="removeFromCart(idx)" title="Remove">✕</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Summary + Receipt -->
+          <div class="billing-right">
+
+            <!-- Bill Summary -->
+            <div class="bill-summary-card">
+              <div class="bill-summary__header">
+                <span class="bill-summary__title">Bill Summary</span>
+                @if (generatedBill()) {
+                  <span class="badge badge--teal">{{ generatedBill()!.billNo }}</span>
+                }
+              </div>
+
+              @if (cart().length === 0) {
+                <p class="summary-empty">Add medicines to see totals</p>
+              } @else {
+                <div class="summary-items">
+                  @for (item of cart(); track item.product._id) {
+                    <div class="summary-line">
+                      <span class="summary-line__name truncate">
+                        {{ item.product.productName }} ×{{ item.quantity }}
+                      </span>
+                      <span class="summary-line__amt">₹{{ calcItemTotal(item) | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                </div>
+
+                <hr class="divider" />
+
+                <div class="totals-block">
+                  <div class="total-row">
+                    <span>Subtotal</span>
+                    <span>₹{{ billTotals().subtotal | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="total-row total-row--discount">
+                    <span>Discount</span>
+                    <span>− ₹{{ billTotals().discount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="total-row">
+                    <span>CGST</span>
+                    <span>₹{{ billTotals().cgst | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="total-row">
+                    <span>SGST</span>
+                    <span>₹{{ billTotals().sgst | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="total-row total-row--grand">
+                    <span>Grand Total</span>
+                    <span>₹{{ billTotals().grandTotal | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+
+                <button
+                  class="btn btn--primary btn--full mt-4"
+                  (click)="generateBill()"
+                  [disabled]="billLoading() || cart().length === 0">
+                  @if (billLoading()) {
+                    <span class="btn-spinner"></span> Generating...
+                  } @else {
+                    🧾 Generate Bill
+                  }
+                </button>
+              }
+            </div>
+
+            <!-- Generated Receipt -->
+            @if (generatedBill()) {
+              <div class="receipt-card" @fadeIn>
+                <div class="receipt-card__header">
+                  <span class="receipt-ok">✓ Bill Generated</span>
+                  <button class="btn btn--ghost btn--xs" (click)="printReceipt()">🖨 Print</button>
+                </div>
+
+                <div class="receipt-body" id="receipt-print-area">
+                  <div class="receipt-pharmacy">
+                    <strong>PharmaTrack Pharmacy</strong>
+                    <p>Drug Lic. No: — &nbsp;|&nbsp; GSTIN: —</p>
+                  </div>
+                  <div class="receipt-bill-row">
+                    <span>Bill No: <strong>{{ generatedBill()!.billNo }}</strong></span>
+                    <span>{{ generatedBill()!.billDate | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  @if (generatedBill()!.customerName) {
+                    <div class="receipt-customer">
+                      Patient: <strong>{{ generatedBill()!.customerName }}</strong>
+                      @if (generatedBill()!.customerPhone) {
+                        &nbsp;| {{ generatedBill()!.customerPhone }}
+                      }
+                    </div>
+                  }
+
+                  <table class="receipt-table">
+                    <thead>
+                      <tr>
+                        <th>#</th><th>Medicine</th><th>Qty</th>
+                        <th>Rate</th><th>Disc%</th><th>Amt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (item of generatedBill()!.items; track $index; let i = $index) {
+                        <tr>
+                          <td>{{ i + 1 }}</td>
+                          <td>
+                            {{ item.productName }}
+                            <small>{{ item.batch }}</small>
+                          </td>
+                          <td>{{ item.quantity }}</td>
+                          <td>₹{{ item.rate | number:'1.2-2' }}</td>
+                          <td>{{ item.discPercent }}%</td>
+                          <td>₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+
+                  <div class="receipt-totals">
+                    <div class="receipt-total-row">
+                      <span>Subtotal</span>
+                      <span>₹{{ generatedBill()!.subtotal | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="receipt-total-row">
+                      <span>Discount</span>
+                      <span>− ₹{{ generatedBill()!.totalDiscount | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="receipt-total-row">
+                      <span>GST</span>
+                      <span>₹{{ generatedBill()!.totalTax | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="receipt-total-row receipt-grand">
+                      <span>GRAND TOTAL</span>
+                      <span>₹{{ generatedBill()!.grandTotal | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                  <p class="receipt-footer-note">Thank you for your visit!</p>
+                </div>
+
+                <button class="btn btn--primary btn--full mt-4" (click)="newBill()">
+                  + New Bill
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════════════════════════════════════
+           TAB: BILL HISTORY
+      ═══════════════════════════════════════════ -->
+      @if (activeTab() === 'history') {
+        <div @fadeIn>
+          <!-- Search bar -->
+          <div class="history-filters">
+            <div class="search-field">
+              <span class="search-field__icon">⌕</span>
+              <input
+                type="text"
+                [(ngModel)]="historySearch"
+                (ngModelChange)="onHistorySearch()"
+                class="field__input search-field__input"
+                placeholder="Search by bill number..."
+              />
+            </div>
+          </div>
+
+          <!-- Bills table -->
+          <div class="table-card">
+            @if (historyLoading()) {
+              <div class="skeleton-rows">
+                @for (i of [1,2,3,4,5,6]; track i) {
+                  <div class="skeleton-row-item">
+                    <div class="skeleton skeleton--sm" style="width:90px"></div>
+                    <div class="skeleton skeleton--sm" style="width:130px"></div>
+                    <div class="skeleton skeleton--sm" style="width:110px"></div>
+                    <div class="skeleton skeleton--sm" style="width:55px"></div>
+                    <div class="skeleton skeleton--sm" style="width:80px"></div>
+                    <div class="skeleton skeleton--sm" style="width:95px"></div>
+                    <div class="skeleton skeleton--sm" style="width:85px"></div>
+                  </div>
+                }
+              </div>
+            } @else if (bills().length === 0) {
+              <div class="empty-state">
+                <span class="empty-state__icon">🧾</span>
+                <h3 class="empty-state__title">No bills yet</h3>
+                <p class="empty-state__desc">Generated bills will appear here.</p>
+              </div>
+            } @else {
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Bill No</th>
+                      <th>Date & Time</th>
+                      <th>Customer</th>
+                      <th>Items</th>
+                      <th class="td--number">Discount</th>
+                      <th class="td--number">GST</th>
+                      <th class="td--number">Grand Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (bill of bills(); track bill._id) {
+                      <tr class="table-row">
+                        <td><span class="bill-no-tag">{{ bill.billNo }}</span></td>
+                        <td class="td--muted">{{ bill.billDate | date:'dd MMM yyyy, hh:mm a' }}</td>
+                        <td>{{ bill.customerName || '—' }}</td>
+                        <td class="td--center">
+                          <span class="badge badge--neutral">{{ bill.items.length || 0 }} items</span>
+                        </td>
+                        <td class="td--number text-success">− ₹{{ bill.totalDiscount | number:'1.2-2' }}</td>
+                        <td class="td--number">₹{{ bill.totalTax | number:'1.2-2' }}</td>
+                        <td class="td--number td--teal">₹{{ bill.grandTotal | number:'1.2-2' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (historyPagination && historyPagination.totalPages > 1) {
+                <div class="pagination">
+                  <button class="page-btn" [disabled]="historyPage === 1" (click)="changeBillPage(historyPage - 1)">← Prev</button>
+                  @for (p of historyPageNums(); track p) {
+                    <button class="page-btn" [class.page-btn--active]="p === historyPage" (click)="changeBillPage(p)">{{ p }}</button>
+                  }
+                  <button class="page-btn" [disabled]="historyPage === historyPagination.totalPages" (click)="changeBillPage(historyPage + 1)">Next →</button>
+                  <span class="page-info">Page {{ historyPage }} of {{ historyPagination.totalPages }}</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>

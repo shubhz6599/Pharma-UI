@@ -43,22 +43,22 @@ export const routes: Routes = [
       import('./features/inventory/inventory').then((m) => m.Inventory),
     title: 'Inventory — PharmaTrack',
   },
-  // {
-  //   path: 'billing',
-  //   canActivate: [authGuard],
-  //   loadComponent: () =>
-  //     import('./features/billing/billing').then((m) => m.Billing),
-  //   title: 'Billing — PharmaTrack',
-  // },
-  // {
-  //   path: 'stock-ledger',
-  //   canActivate: [authGuard],
-  //   loadComponent: () =>
-  //     import('./features/billing/stock-ledger/stock-ledger').then(
-  //       (m) => m.StockLedgerComponent
-  //     ),
-  //   title: 'Stock Ledger — PharmaTrack',
-  // },
+  {
+    path: 'billing',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/billing/billing').then((m) => m.Billing),
+    title: 'Billing — PharmaTrack',
+  },
+  {
+    path: 'stock-ledger',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/stock-ledger/stock-ledger').then(
+        (m) => m.StockLedger
+      ),
+    title: 'Stock Ledger — PharmaTrack',
+  },
   {
     path: '**',
     redirectTo: '/dashboard',

@@ -1,54 +1,164 @@
-<div class="auth-page">
-  <div class="auth-bg">
-    <div class="bg-blob bg-blob--1"></div>
-    <div class="bg-blob bg-blob--2"></div>
-    <div class="bg-grid"></div>
-  </div>
-
-  <div class="auth-card" @formEnter>
-    <div class="auth-card__header">
-      <div class="auth-logo">⚕</div>
-      <h1 class="auth-title">PharmaTrack</h1>
-      <p class="auth-subtitle">Sign in to your account</p>
-    </div>
-
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
-      <div class="field">
-        <label class="field__label" for="email">Email address</label>
-        <input id="email" type="email" formControlName="email" class="field__input"
-          [class.field__input--error]="isInvalid('email')" placeholder="pharmacist@clinic.com" autocomplete="email" />
-        @if (isInvalid('email')) {
-        <span class="field__error">Please enter a valid email.</span>
-        }
+ <div class="auth-page">
+      <div class="auth-bg">
+        <div class="blob blob--1"></div>
+        <div class="blob blob--2"></div>
+        <div class="auth-grid"></div>
       </div>
 
-      <div class="field">
-        <label class="field__label" for="password">Password</label>
-        <div class="field__input-wrap">
-          <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
-            class="field__input" [class.field__input--error]="isInvalid('password')" placeholder="••••••••"
-            autocomplete="current-password" />
-          <button type="button" class="field__eye" (click)="showPassword.set(!showPassword())">{{ showPassword() ? '🙈'
-            : '👁' }}</button>
+      <div class="auth-card" @cardAnim>
+        <!-- Brand -->
+        <div class="auth-brand">
+          <div class="auth-logo">⚕</div>
+          <h1 class="auth-app-name">PharmaTrack <span>Pro</span></h1>
         </div>
-        @if (isInvalid('password')) {
-        <span class="field__error">Password is required.</span>
+
+        <!-- ═══ STEP: LOGIN ═══ -->
+        @if (step() === 'login') {
+          <div @stepAnim>
+            <h2 class="auth-title">Welcome back</h2>
+            <p class="auth-sub">Sign in with your email, username, or phone</p>
+
+            <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form">
+              <div class="field">
+                <label class="field__label">Email / Username / Phone</label>
+                <input formControlName="identifier" type="text" class="field__input"
+                  [class.field__input--error]="fInvalid('loginForm','identifier')"
+                  placeholder="admin@pharma.com  or  admin123  or  9876543210"
+                  autocomplete="username" />
+                @if (fInvalid('loginForm','identifier')) {
+                  <span class="field__error">This field is required.</span>
+                }
+              </div>
+
+              <div class="field">
+                <div class="field__label-row">
+                  <label class="field__label">Password</label>
+                  <button type="button" class="link-btn" (click)="step.set('forgot-input')">Forgot password?</button>
+                </div>
+                <div class="input-wrap">
+                  <input formControlName="password" [type]="showPwd() ? 'text' : 'password'"
+                    class="field__input" [class.field__input--error]="fInvalid('loginForm','password')"
+                    placeholder="••••••••" autocomplete="current-password" />
+                  <button type="button" class="eye-btn" (click)="showPwd.set(!showPwd())">
+                    {{ showPwd() ? '🙈' : '👁' }}
+                  </button>
+                </div>
+                @if (fInvalid('loginForm','password')) {
+                  <span class="field__error">Password is required.</span>
+                }
+              </div>
+
+              <button type="submit" class="btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-sm"></span> Signing in... }
+                @else { Sign In }
+              </button>
+            </form>
+
+            <p class="auth-footer">
+              Don't have an account? <a routerLink="/auth/register" class="auth-link">Register</a>
+            </p>
+          </div>
+        }
+
+        <!-- ═══ STEP: FORGOT — enter identifier ═══ -->
+        @if (step() === 'forgot-input') {
+          <div @stepAnim>
+            <button class="back-btn" (click)="step.set('login')">← Back to Login</button>
+            <h2 class="auth-title">Forgot Password?</h2>
+            <p class="auth-sub">Enter your registered email, username, or phone number and we'll send an OTP.</p>
+
+            <form [formGroup]="forgotForm" (ngSubmit)="onForgotSend()" class="auth-form">
+              <div class="field">
+                <label class="field__label">Email / Username / Phone</label>
+                <input formControlName="identifier" type="text" class="field__input"
+                  [class.field__input--error]="fInvalid('forgotForm','identifier')"
+                  placeholder="your email, username or phone" />
+                @if (fInvalid('forgotForm','identifier')) {
+                  <span class="field__error">This field is required.</span>
+                }
+              </div>
+              <button type="submit" class="btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-sm"></span> Sending OTP... }
+                @else { Send OTP }
+              </button>
+            </form>
+          </div>
+        }
+
+        <!-- ═══ STEP: FORGOT — verify OTP ═══ -->
+        @if (step() === 'forgot-otp') {
+          <div @stepAnim>
+            <h2 class="auth-title">Enter OTP</h2>
+            <p class="auth-sub">We've sent a 6-digit OTP to <strong>{{ maskedEmail() }}</strong>. It expires in 10 minutes.</p>
+
+            <form [formGroup]="otpForm" (ngSubmit)="onVerifyResetOtp()" class="auth-form">
+              <div class="field">
+                <label class="field__label">6-Digit OTP</label>
+                <input formControlName="otp" type="text" inputmode="numeric" maxlength="6"
+                  class="field__input otp-input" placeholder="• • • • • •" autocomplete="one-time-code" />
+                @if (fInvalid('otpForm','otp')) {
+                  <span class="field__error">Please enter the 6-digit OTP.</span>
+                }
+              </div>
+              <button type="submit" class="btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-sm"></span> Verifying... }
+                @else { Verify OTP }
+              </button>
+            </form>
+
+            <p class="auth-footer">
+              Didn't receive it?
+              <button class="link-btn" (click)="onResendForgotOtp()" [disabled]="resendCooldown() > 0">
+                Resend {{ resendCooldown() > 0 ? '(' + resendCooldown() + 's)' : '' }}
+              </button>
+            </p>
+          </div>
+        }
+
+        <!-- ═══ STEP: FORGOT — set new password ═══ -->
+        @if (step() === 'forgot-reset') {
+          <div @stepAnim>
+            <h2 class="auth-title">Set New Password</h2>
+            <p class="auth-sub">Choose a strong password for your account.</p>
+
+            <form [formGroup]="resetForm" (ngSubmit)="onResetPassword()" class="auth-form">
+              <div class="field">
+                <label class="field__label">New Password</label>
+                <div class="input-wrap">
+                  <input formControlName="newPassword" [type]="showNewPwd() ? 'text' : 'password'"
+                    class="field__input" [class.field__input--error]="fInvalid('resetForm','newPassword')"
+                    placeholder="Min. 8 characters" />
+                  <button type="button" class="eye-btn" (click)="showNewPwd.set(!showNewPwd())">{{ showNewPwd() ? '🙈' : '👁' }}</button>
+                </div>
+                @if (fInvalid('resetForm','newPassword')) {
+                  <span class="field__error">Password must be at least 8 characters.</span>
+                }
+              </div>
+              <div class="field">
+                <label class="field__label">Confirm Password</label>
+                <input formControlName="confirmPassword" type="password" class="field__input"
+                  [class.field__input--error]="resetForm.hasError('mismatch') && resetForm.touched"
+                  placeholder="Repeat password" />
+                @if (resetForm.hasError('mismatch') && resetForm.touched) {
+                  <span class="field__error">Passwords do not match.</span>
+                }
+              </div>
+              <button type="submit" class="btn-primary" [disabled]="loading()">
+                @if (loading()) { <span class="spinner-sm"></span> Resetting... }
+                @else { Reset Password }
+              </button>
+            </form>
+          </div>
+        }
+
+        <!-- ═══ STEP: FORGOT — success ═══ -->
+        @if (step() === 'forgot-success') {
+          <div class="success-state" @stepAnim>
+            <div class="success-icon">✓</div>
+            <h2 class="auth-title">Password Reset!</h2>
+            <p class="auth-sub">Your password has been changed successfully. You can now sign in with your new password.</p>
+            <button class="btn-primary" (click)="step.set('login')">Go to Login</button>
+          </div>
         }
       </div>
-
-      <button type="submit" class="btn-submit" [disabled]="loading()">
-        @if (loading()) {
-        <span class="btn-spinner"></span>
-        Signing in...
-        } @else {
-        Sign In
-        }
-      </button>
-    </form>
-
-    <p class="auth-switch">
-      Don't have an account?
-      <a routerLink="/auth/register" class="auth-link">Create account</a>
-    </p>
-  </div>
-</div>
+    </div>
