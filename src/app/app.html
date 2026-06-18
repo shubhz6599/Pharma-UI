@@ -1,74 +1,120 @@
-  <!-- Global Loading Bar -->
+   <!-- Global loading bar -->
     @if (isLoading()) {
-      <div class="global-loading-bar">
-        <div class="loading-progress"></div>
-      </div>
+      <div class="g-loading-bar"><div class="g-loading-bar__fill"></div></div>
     }
 
-    <!-- Toast Container -->
-    <div class="toast-container">
-      @for (toast of toasts(); track toast.id) {
-        <div class="toast toast--{{ toast.type }}" @toastEnter>
-          <span class="toast__icon">{{ toastIcon(toast.type) }}</span>
-          <span class="toast__msg">{{ toast.message }}</span>
-          <button class="toast__close" (click)="removeToast(toast.id)">✕</button>
+    <!-- Toast container -->
+    <div class="toast-container" role="status" aria-live="polite">
+      @for (t of toasts(); track t.id) {
+        <div class="toast toast--{{ t.type }}" @toastAnim>
+          <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+          <span class="toast__msg">{{ t.message }}</span>
+          <button class="toast__close" (click)="removeToast(t.id)" aria-label="Dismiss">✕</button>
         </div>
       }
     </div>
 
     @if (isLoggedIn()) {
-      <!-- App Shell with Sidebar -->
       <div class="app-shell">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <!-- ═══ SIDEBAR ═══ -->
+        <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed()">
+          <!-- Brand -->
           <div class="sidebar__brand">
-            <div class="brand-icon">⚕</div>
-            <div class="brand-text">
-              <span class="brand-name">PharmaTrack</span>
-              <span class="brand-sub">Pro Edition</span>
-            </div>
+            <div class="brand-logo">⚕</div>
+            @if (!sidebarCollapsed()) {
+              <div class="brand-text">
+                <span class="brand-name">PharmaTrack</span>
+                <span class="brand-edition">Pro Edition</span>
+              </div>
+            }
+            <button class="collapse-btn" (click)="sidebarCollapsed.set(!sidebarCollapsed())" [attr.title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+              {{ sidebarCollapsed() ? '›' : '‹' }}
+            </button>
           </div>
 
-          <nav class="sidebar__nav">
-            <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
+          <!-- Nav -->
+          <nav class="sidebar__nav" role="navigation">
+            <a routerLink="/dashboard"    routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Dashboard' : ''">
               <span class="nav-icon">⊞</span>
-              <span>Dashboard</span>
+              @if (!sidebarCollapsed()) { <span>Dashboard</span> }
             </a>
-            <a routerLink="/inventory" routerLinkActive="active" class="nav-link">
+            <a routerLink="/inventory"    routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Inventory' : ''">
               <span class="nav-icon">◫</span>
-              <span>Inventory</span>
+              @if (!sidebarCollapsed()) { <span>Inventory</span> }
             </a>
-            <a routerLink="/billing" routerLinkActive="active" class="nav-link">
-              <span class="nav-icon">▣</span>
-              <span>Billing</span>
+            <a routerLink="/billing"      routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Billing' : ''">
+              <span class="nav-icon">🧾</span>
+              @if (!sidebarCollapsed()) { <span>Billing</span> }
             </a>
-            <a routerLink="/stock-ledger" routerLinkActive="active" class="nav-link">
+            <a routerLink="/stock-ledger" routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Stock Ledger' : ''">
               <span class="nav-icon">≡</span>
-              <span>Stock Ledger</span>
+              @if (!sidebarCollapsed()) { <span>Stock Ledger</span> }
             </a>
+
+            <!-- Masters with submenu -->
+            <div class="nav-group">
+              <button class="nav-link nav-link--group"
+                [class.nav-link--group-active]="isOnMasters()"
+                (click)="mastersOpen.set(!mastersOpen())"
+                [title]="sidebarCollapsed() ? 'Masters' : ''">
+                <span class="nav-icon">🗂</span>
+                @if (!sidebarCollapsed()) {
+                  <span class="nav-group__label">Masters</span>
+                  <span class="nav-group__caret" [class.rotated]="mastersOpen()">▾</span>
+                }
+              </button>
+
+              @if (mastersOpen() && !sidebarCollapsed()) {
+                <div class="nav-submenu" @submenuAnim>
+                  <a routerLink="/masters/suppliers" routerLinkActive="nav-sublink--active" class="nav-sublink">
+                    <span class="sublink-dot"></span> Supplier Master
+                  </a>
+                  <a routerLink="/masters/customers" routerLinkActive="nav-sublink--active" class="nav-sublink">
+                    <span class="sublink-dot"></span> Customer Master
+                  </a>
+                </div>
+              }
+
+              <!-- Collapsed: show as flat icons with tooltip -->
+              @if (sidebarCollapsed()) {
+                <a routerLink="/masters/suppliers" routerLinkActive="nav-link--active" class="nav-link" title="Supplier Master">
+                  <span class="nav-icon">🏭</span>
+                </a>
+                <a routerLink="/masters/customers" routerLinkActive="nav-link--active" class="nav-link" title="Customer Master">
+                  <span class="nav-icon">👥</span>
+                </a>
+              }
+            </div>
           </nav>
 
+          <!-- User pill + logout -->
           <div class="sidebar__footer">
-            <div class="user-pill">
-              <div class="user-avatar">{{ userInitial() }}</div>
-              <div class="user-info">
-                <span class="user-name">{{ userName() }}</span>
-                <span class="user-role">{{ userRole() }}</span>
+            @if (!sidebarCollapsed()) {
+              <div class="user-pill">
+                <div class="user-avatar" [title]="userName()">{{ userInitial() }}</div>
+                <div class="user-info">
+                  <span class="user-name truncate">{{ userName() }}</span>
+                  <span class="user-role">{{ userRole() }}</span>
+                </div>
               </div>
-            </div>
-            <button class="logout-btn" (click)="logout()">⏻ Logout</button>
+            } @else {
+              <div class="user-avatar user-avatar--center" [title]="userName()">{{ userInitial() }}</div>
+            }
+            <button class="logout-btn" (click)="logout()" [title]="sidebarCollapsed() ? 'Logout' : ''">
+              <span>⏻</span>
+              @if (!sidebarCollapsed()) { <span>Logout</span> }
+            </button>
           </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- ═══ MAIN CONTENT ═══ -->
         <main class="main-content">
-          <div [@routeAnimation]="getRouteState()" class="route-wrapper">
+          <div [@routeAnim]="route()" class="route-wrapper">
             <router-outlet></router-outlet>
           </div>
         </main>
       </div>
     } @else {
-      <!-- Auth Layout (no sidebar) -->
       <div class="auth-layout">
         <router-outlet></router-outlet>
       </div>

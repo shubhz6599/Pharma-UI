@@ -1,0 +1,257 @@
+   <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Supplier Master</h1>
+          <p class="page-subtitle">Manage your medicine suppliers and distributors</p>
+        </div>
+        <button class="btn btn--primary" (click)="openAdd()">+ Add Supplier</button>
+      </header>
+
+      <!-- Search + Filter -->
+      <div class="filter-bar">
+        <div class="search-field" style="flex:1;min-width:220px">
+          <span class="search-field__icon">⌕</span>
+          <input type="text" [(ngModel)]="searchQ" (ngModelChange)="onSearch()" [ngModelOptions]="{standalone:true}"
+            class="field__input search-field__input" placeholder="Search by name, phone, GST..." />
+          @if (searchQ) {
+            <button class="search-field__clear" (click)="searchQ='';onSearch()">✕</button>
+          }
+        </div>
+        <select [(ngModel)]="activeFilter" (ngModelChange)="loadSuppliers()" [ngModelOptions]="{standalone:true}" class="field__input" style="width:150px">
+          <option value="true">Active Only</option>
+          <option value="false">Inactive</option>
+          <option value="">All</option>
+        </select>
+        <div class="total-badge">{{ pagination()?.total || 0 }} suppliers</div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card">
+        @if (loading()) {
+          <div class="skeleton-rows">
+            @for (i of [1,2,3,4,5,6]; track i) {
+              <div class="skeleton-row-item">
+                @for (w of ['180px','100px','130px','120px','150px','80px','90px']; track w) {
+                  <div class="skeleton skeleton--sm" [style.width]="w"></div>
+                }
+              </div>
+            }
+          </div>
+        } @else if (suppliers().length === 0) {
+          <div class="empty-state">
+            <span class="empty-state__icon">🏭</span>
+            <h3 class="empty-state__title">No suppliers found</h3>
+            <p class="empty-state__desc">Add your first supplier to link medicines to their source.</p>
+            <button class="btn btn--primary" (click)="openAdd()">+ Add Supplier</button>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Supplier Name</th>
+                  <th>Contact Person</th>
+                  <th>Phone</th>
+                  <th>GST No.</th>
+                  <th>Drug Lic. No.</th>
+                  <th>City / State</th>
+                  <th>Status</th>
+                  <th class="td--center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of suppliers(); track s._id; let i = $index) {
+                  <tr class="table-row" @fadeIn>
+                    <td class="td--muted">{{ (currentPage()-1)*pageSize + i + 1 }}</td>
+                    <td>
+                      <div class="supplier-name">{{ s.name }}</div>
+                      @if (s.email) { <div class="supplier-email">{{ s.email }}</div> }
+                    </td>
+                    <td>{{ s.contactPerson || '—' }}</td>
+                    <td class="td--mono">
+                      {{ s.phone }}
+                      @if (s.alternatePhone) { <div class="alt-phone">{{ s.alternatePhone }}</div> }
+                    </td>
+                    <td class="td--mono">{{ s.gstNo || '—' }}</td>
+                    <td class="td--mono">{{ s.drugLicenseNo || '—' }}</td>
+                    <td>
+                      @if (s.address) { {{ s.address.city }}, {{ s.address.state }} }
+                      @else { — }
+                    </td>
+                    <td>
+                      <span class="badge" [class.badge--teal]="s.isActive" [class.badge--neutral]="!s.isActive">
+                        {{ s.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td class="td--actions td--center">
+                      <button class="action-btn action-btn--view" (click)="openView(s)" title="View full details">👁</button>
+                      <button class="action-btn action-btn--edit" (click)="openEdit(s)" title="Edit">✏</button>
+                      <button class="action-btn action-btn--delete" (click)="confirmDelete(s)" title="Deactivate">🗑</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (pagination() && pagination()!.totalPages > 1) {
+            <div class="pagination">
+              <button class="page-btn" [disabled]="currentPage()===1" (click)="goPage(currentPage()-1)">← Prev</button>
+              @for (p of pageNums(); track p) {
+                <button class="page-btn" [class.page-btn--active]="p===currentPage()" (click)="goPage(p)">{{ p }}</button>
+              }
+              <button class="page-btn" [disabled]="currentPage()===pagination()!.totalPages" (click)="goPage(currentPage()+1)">Next →</button>
+              <span class="page-info">{{ pagination()!.total }} total</span>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- View Modal -->
+    @if (viewTarget()) {
+      <div class="modal-overlay" @fadeIn (click)="viewTarget.set(null)">
+        <div class="modal modal--md" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ viewTarget()!.name }}</h2>
+            <button class="modal__close" (click)="viewTarget.set(null)">✕</button>
+          </div>
+          <div class="modal__body view-grid">
+            <div class="view-section">
+              <div class="view-section__title">Contact Information</div>
+              <div class="view-row"><span>Contact Person</span><strong>{{ viewTarget()!.contactPerson || '—' }}</strong></div>
+              <div class="view-row"><span>Phone</span><strong>{{ viewTarget()!.phone }}</strong></div>
+              <div class="view-row"><span>Alt. Phone</span><strong>{{ viewTarget()!.alternatePhone || '—' }}</strong></div>
+              <div class="view-row"><span>Email</span><strong>{{ viewTarget()!.email || '—' }}</strong></div>
+            </div>
+            <div class="view-section">
+              <div class="view-section__title">Legal Information</div>
+              <div class="view-row"><span>GST No.</span><strong class="font-mono">{{ viewTarget()!.gstNo || '—' }}</strong></div>
+              <div class="view-row"><span>Drug Lic. No.</span><strong class="font-mono">{{ viewTarget()!.drugLicenseNo || '—' }}</strong></div>
+            </div>
+            @if (viewTarget()!.address) {
+              <div class="view-section view-section--full">
+                <div class="view-section__title">Address</div>
+                <div class="address-block">
+                  {{ viewTarget()!.address.line1 }}<br>
+                  @if (viewTarget()!.address.line2) { {{ viewTarget()!.address.line2 }}<br> }
+                  {{ viewTarget()!.address.city }}, {{ viewTarget()!.address.state }} — {{ viewTarget()!.address.pincode }}
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Add / Edit Modal -->
+    @if (showModal()) {
+      <div class="modal-overlay" @fadeIn (click)="closeModal()">
+        <div class="modal modal--lg" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ editMode() ? 'Edit Supplier' : 'Add New Supplier' }}</h2>
+            <button class="modal__close" (click)="closeModal()">✕</button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="submitForm()" class="modal__body">
+            <!-- Basic info -->
+            <div class="form-section-label">Basic Information</div>
+            <div class="form-grid-3">
+              <div class="field field--span2">
+                <label class="field__label">Supplier / Company Name <span class="req">*</span></label>
+                <input formControlName="name" type="text" class="field__input" [class.field__input--error]="fi('name')" placeholder="Rahul Agencies" />
+                @if (fi('name')) { <span class="field__error">Name is required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Contact Person</label>
+                <input formControlName="contactPerson" type="text" class="field__input" placeholder="Mr. Rahul Shah" />
+              </div>
+              <div class="field">
+                <label class="field__label">Phone <span class="req">*</span></label>
+                <input formControlName="phone" type="tel" class="field__input" [class.field__input--error]="fi('phone')" placeholder="9325681800" />
+                @if (fi('phone')) { <span class="field__error">Phone is required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Alternate Phone</label>
+                <input formControlName="alternatePhone" type="tel" class="field__input" placeholder="(optional)" />
+              </div>
+              <div class="field">
+                <label class="field__label">Email</label>
+                <input formControlName="email" type="email" class="field__input" placeholder="rahul@agencies.com" />
+              </div>
+            </div>
+
+            <!-- Legal -->
+            <div class="form-section-label mt-4">Legal & License</div>
+            <div class="form-grid-2">
+              <div class="field">
+                <label class="field__label">GST Number</label>
+                <input formControlName="gstNo" type="text" class="field__input" [class.field__input--error]="fi('gstNo')" placeholder="27ALLPG3700B1Z8" style="text-transform:uppercase" />
+                @if (fi('gstNo')) { <span class="field__error">Invalid GST format.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Drug License No.</label>
+                <input formControlName="drugLicenseNo" type="text" class="field__input" placeholder="208-362455, 21B-362456" />
+              </div>
+            </div>
+
+            <!-- Address -->
+            <div class="form-section-label mt-4">Address</div>
+            <div formGroupName="address" class="form-grid-2">
+              <div class="field field--span2">
+                <label class="field__label">Address Line 1 <span class="req">*</span></label>
+                <input formControlName="line1" type="text" class="field__input" [class.field__input--error]="fadd('line1')" placeholder="'Ashirwad' Near T.V. Center & Krupal Ashram" />
+                @if (fadd('line1')) { <span class="field__error">Address line 1 is required.</span> }
+              </div>
+              <div class="field field--span2">
+                <label class="field__label">Address Line 2</label>
+                <input formControlName="line2" type="text" class="field__input" placeholder="Landmark / Area (optional)" />
+              </div>
+              <div class="field">
+                <label class="field__label">City <span class="req">*</span></label>
+                <input formControlName="city" type="text" class="field__input" [class.field__input--error]="fadd('city')" placeholder="Ahilyanagar" />
+                @if (fadd('city')) { <span class="field__error">City is required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">State <span class="req">*</span></label>
+                <select formControlName="state" class="field__input" [class.field__input--error]="fadd('state')">
+                  <option value="">Select State</option>
+                  @for (st of states; track st) { <option [value]="st">{{ st }}</option> }
+                </select>
+                @if (fadd('state')) { <span class="field__error">State is required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Pincode <span class="req">*</span></label>
+                <input formControlName="pincode" type="text" maxlength="6" class="field__input" [class.field__input--error]="fadd('pincode')" placeholder="414001" />
+                @if (fadd('pincode')) { <span class="field__error">Valid 6-digit pincode required.</span> }
+              </div>
+            </div>
+
+            <div class="modal__footer" style="padding:1.25rem 0 0;border-top:1px solid var(--border);margin-top:1.5rem;display:flex;justify-content:flex-end;gap:0.75rem">
+              <button type="button" class="btn btn--ghost" (click)="closeModal()">Cancel</button>
+              <button type="submit" class="btn btn--primary" [disabled]="saveLoading()">
+                @if (saveLoading()) { <span class="btn-spinner"></span> }
+                {{ saveLoading() ? 'Saving...' : (editMode() ? 'Update Supplier' : 'Add Supplier') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    <!-- Delete confirm -->
+    @if (deleteTarget()) {
+      <div class="modal-overlay" @fadeIn (click)="deleteTarget.set(null)">
+        <div class="modal modal--sm modal--centered" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__icon">🗑</div>
+          <h3 class="modal__title">Deactivate Supplier</h3>
+          <p class="modal__desc">Deactivate <strong>{{ deleteTarget()!.name }}</strong>? They won't appear in dropdowns but data is preserved.</p>
+          <div style="display:flex;gap:0.75rem;justify-content:center">
+            <button class="btn btn--ghost" (click)="deleteTarget.set(null)">Cancel</button>
+            <button class="btn btn--danger" (click)="doDelete()" [disabled]="saveLoading()">
+              {{ saveLoading() ? 'Processing...' : 'Deactivate' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }

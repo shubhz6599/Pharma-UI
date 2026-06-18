@@ -60,6 +60,22 @@ export const routes: Routes = [
     title: 'Stock Ledger — PharmaTrack',
   },
   {
+    path: 'masters/suppliers',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/masters/supplier/supplier').then(
+        m => m.SupplierComponent),
+    title: 'Suppliers — PharmaTrack'
+  },
+  {
+    path: 'masters/customers',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/masters/customer/customer').then(
+        m => m.CustomerComponent),
+    title: 'Customers — PharmaTrack'
+  },
+  {
     path: '**',
     redirectTo: '/dashboard',
   },
