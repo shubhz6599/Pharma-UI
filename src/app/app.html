@@ -1,6 +1,8 @@
-   <!-- Global loading bar -->
+  <!-- Global loading bar -->
     @if (isLoading()) {
-      <div class="g-loading-bar"><div class="g-loading-bar__fill"></div></div>
+      <div class="g-loading-bar" role="progressbar" aria-label="Loading">
+        <div class="g-loading-bar__fill"></div>
+      </div>
     }
 
     <!-- Toast container -->
@@ -16,8 +18,12 @@
 
     @if (isLoggedIn()) {
       <div class="app-shell">
-        <!-- ═══ SIDEBAR ═══ -->
+
+        <!-- ══════════════════════════════════
+             DESKTOP SIDEBAR
+        ══════════════════════════════════ -->
         <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed()">
+
           <!-- Brand -->
           <div class="sidebar__brand">
             <div class="brand-logo">⚕</div>
@@ -26,20 +32,20 @@
                 <span class="brand-name">PharmaTrack</span>
                 <span class="brand-edition">Pro Edition</span>
               </div>
+              <button class="collapse-btn" (click)="sidebarCollapsed.set(true)" title="Collapse">‹</button>
+            } @else {
+              <button class="collapse-btn collapse-btn--expand" (click)="sidebarCollapsed.set(false)" title="Expand">›</button>
             }
-            <button class="collapse-btn" (click)="sidebarCollapsed.set(!sidebarCollapsed())" [attr.title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
-              {{ sidebarCollapsed() ? '›' : '‹' }}
-            </button>
           </div>
 
-          <!-- Nav -->
-          <nav class="sidebar__nav" role="navigation">
+          <!-- Nav links -->
+          <nav class="sidebar__nav">
             <a routerLink="/dashboard"    routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Dashboard' : ''">
               <span class="nav-icon">⊞</span>
               @if (!sidebarCollapsed()) { <span>Dashboard</span> }
             </a>
             <a routerLink="/inventory"    routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Inventory' : ''">
-              <span class="nav-icon">◫</span>
+              <span class="nav-icon">💊</span>
               @if (!sidebarCollapsed()) { <span>Inventory</span> }
             </a>
             <a routerLink="/billing"      routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Billing' : ''">
@@ -47,72 +53,123 @@
               @if (!sidebarCollapsed()) { <span>Billing</span> }
             </a>
             <a routerLink="/stock-ledger" routerLinkActive="nav-link--active" class="nav-link" [title]="sidebarCollapsed() ? 'Stock Ledger' : ''">
-              <span class="nav-icon">≡</span>
+              <span class="nav-icon">📋</span>
               @if (!sidebarCollapsed()) { <span>Stock Ledger</span> }
             </a>
 
-            <!-- Masters with submenu -->
-            <div class="nav-group">
-              <button class="nav-link nav-link--group"
-                [class.nav-link--group-active]="isOnMasters()"
-                (click)="mastersOpen.set(!mastersOpen())"
-                [title]="sidebarCollapsed() ? 'Masters' : ''">
-                <span class="nav-icon">🗂</span>
-                @if (!sidebarCollapsed()) {
+            <!-- Masters group -->
+            @if (!sidebarCollapsed()) {
+              <div class="nav-group">
+                <button class="nav-link nav-link--group" [class.nav-link--group-open]="mastersOpen()" (click)="mastersOpen.set(!mastersOpen())">
+                  <span class="nav-icon">🗂</span>
                   <span class="nav-group__label">Masters</span>
                   <span class="nav-group__caret" [class.rotated]="mastersOpen()">▾</span>
+                </button>
+                @if (mastersOpen()) {
+                  <div class="nav-submenu" @submenuAnim>
+                    <a routerLink="/masters/suppliers" routerLinkActive="nav-sublink--active" class="nav-sublink">
+                      <span class="sublink-dot"></span>Supplier Master
+                    </a>
+                    <a routerLink="/masters/customers" routerLinkActive="nav-sublink--active" class="nav-sublink">
+                      <span class="sublink-dot"></span>Customer Master
+                    </a>
+                  </div>
                 }
-              </button>
-
-              @if (mastersOpen() && !sidebarCollapsed()) {
-                <div class="nav-submenu" @submenuAnim>
-                  <a routerLink="/masters/suppliers" routerLinkActive="nav-sublink--active" class="nav-sublink">
-                    <span class="sublink-dot"></span> Supplier Master
-                  </a>
-                  <a routerLink="/masters/customers" routerLinkActive="nav-sublink--active" class="nav-sublink">
-                    <span class="sublink-dot"></span> Customer Master
-                  </a>
-                </div>
-              }
-
-              <!-- Collapsed: show as flat icons with tooltip -->
-              @if (sidebarCollapsed()) {
-                <a routerLink="/masters/suppliers" routerLinkActive="nav-link--active" class="nav-link" title="Supplier Master">
-                  <span class="nav-icon">🏭</span>
-                </a>
-                <a routerLink="/masters/customers" routerLinkActive="nav-link--active" class="nav-link" title="Customer Master">
-                  <span class="nav-icon">👥</span>
-                </a>
-              }
-            </div>
+              </div>
+            } @else {
+              <!-- Collapsed: Masters icons -->
+              <a routerLink="/masters/suppliers" routerLinkActive="nav-link--active" class="nav-link" title="Supplier Master">
+                <span class="nav-icon">🏭</span>
+              </a>
+              <a routerLink="/masters/customers" routerLinkActive="nav-link--active" class="nav-link" title="Customer Master">
+                <span class="nav-icon">👥</span>
+              </a>
+            }
           </nav>
 
-          <!-- User pill + logout -->
+          <!-- Footer: user + logout -->
           <div class="sidebar__footer">
-            @if (!sidebarCollapsed()) {
-              <div class="user-pill">
-                <div class="user-avatar" [title]="userName()">{{ userInitial() }}</div>
+            <div class="user-pill">
+              <div class="user-avatar" [title]="userName()">{{ userInitial() }}</div>
+              @if (!sidebarCollapsed()) {
                 <div class="user-info">
                   <span class="user-name truncate">{{ userName() }}</span>
                   <span class="user-role">{{ userRole() }}</span>
                 </div>
-              </div>
-            } @else {
-              <div class="user-avatar user-avatar--center" [title]="userName()">{{ userInitial() }}</div>
-            }
+              }
+            </div>
             <button class="logout-btn" (click)="logout()" [title]="sidebarCollapsed() ? 'Logout' : ''">
-              <span>⏻</span>
+              <span class="logout-icon">⏻</span>
               @if (!sidebarCollapsed()) { <span>Logout</span> }
             </button>
           </div>
         </aside>
 
-        <!-- ═══ MAIN CONTENT ═══ -->
+        <!-- ══════════════════════════════════
+             MAIN CONTENT
+        ══════════════════════════════════ -->
         <main class="main-content">
           <div [@routeAnim]="route()" class="route-wrapper">
             <router-outlet></router-outlet>
           </div>
         </main>
+
+        <!-- ══════════════════════════════════
+             MOBILE BOTTOM NAVIGATION
+             (visible only on phones ≤ 768px)
+        ══════════════════════════════════ -->
+        <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+          <a routerLink="/dashboard"    routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
+            <span class="mobile-nav-icon">⊞</span>
+            <span class="mobile-nav-label">Dashboard</span>
+          </a>
+          <a routerLink="/inventory"    routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
+            <span class="mobile-nav-icon">💊</span>
+            <span class="mobile-nav-label">Inventory</span>
+          </a>
+          <a routerLink="/billing"      routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
+            <span class="mobile-nav-icon">🧾</span>
+            <span class="mobile-nav-label">Billing</span>
+          </a>
+          <a routerLink="/stock-ledger" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
+            <span class="mobile-nav-icon">📋</span>
+            <span class="mobile-nav-label">Ledger</span>
+          </a>
+          <!-- Masters trigger -->
+          <button class="mobile-nav-item" [class.mobile-nav-item--active]="isOnMasters()" (click)="mobileMastersOpen.set(!mobileMastersOpen())">
+            <span class="mobile-nav-icon">🗂</span>
+            <span class="mobile-nav-label">Masters</span>
+          </button>
+        </nav>
+
+        <!-- Mobile Masters sheet (slides up) -->
+        @if (mobileMastersOpen()) {
+          <div class="mobile-sheet-overlay" (click)="mobileMastersOpen.set(false)"></div>
+          <div class="mobile-masters-sheet" @mobileMenuAnim>
+            <div class="mobile-sheet-handle"></div>
+            <div class="mobile-sheet-title">Masters</div>
+            <a routerLink="/masters/suppliers" routerLinkActive="mobile-sheet-link--active"
+               class="mobile-sheet-link" (click)="mobileMastersOpen.set(false)">
+              <span class="mobile-sheet-link__icon">🏭</span>
+              <div class="mobile-sheet-link__text">
+                <strong>Supplier Master</strong>
+                <span>Manage medicine suppliers & distributors</span>
+              </div>
+              <span class="mobile-sheet-link__arrow">›</span>
+            </a>
+            <a routerLink="/masters/customers" routerLinkActive="mobile-sheet-link--active"
+               class="mobile-sheet-link" (click)="mobileMastersOpen.set(false)">
+              <span class="mobile-sheet-link__icon">👥</span>
+              <div class="mobile-sheet-link__text">
+                <strong>Customer Master</strong>
+                <span>Manage patients & customers</span>
+              </div>
+              <span class="mobile-sheet-link__arrow">›</span>
+            </a>
+            <button class="mobile-sheet-cancel" (click)="mobileMastersOpen.set(false)">Cancel</button>
+          </div>
+        }
+
       </div>
     } @else {
       <div class="auth-layout">

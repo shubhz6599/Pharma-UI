@@ -2,6 +2,13 @@
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       background: var(--bg-base); position: relative; overflow: hidden; padding: 1.5rem;
     }
+        @media (max-width: 768px) {
+          .auth-card {
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
     .auth-bg { position: absolute; inset: 0; pointer-events: none; }
     .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.12; }
     .blob--1 { width: 560px; height: 560px; top: -120px; left: -120px; background: radial-gradient(circle, var(--accent-teal), transparent); }

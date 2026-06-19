@@ -1,206 +1,246 @@
- <div class="page-wrap">
+  <div class="page-wrap">
       <header class="page-header">
         <div>
           <h1 class="page-title">Inventory Management</h1>
           <p class="page-subtitle">Add, edit and manage your medicine stock</p>
         </div>
-        <button class="btn btn--primary" (click)="openAddModal()">+ Add Medicine</button>
+        <button class="btn btn--primary" (click)="openAdd()">+ Add Medicine</button>
       </header>
 
-      <!-- Products Grid Summary -->
-      <div class="inventory-summary">
-        <div class="summary-stat">
-          <span class="summary-stat__val">{{ products().length }}</span>
-          <span class="summary-stat__label">Products Loaded</span>
+      <!-- Summary stat -->
+      <div class="inv-summary">
+        <div class="inv-stat">
+          <span class="inv-stat__val">{{ products().length }}</span>
+          <span class="inv-stat__label">Products loaded</span>
         </div>
+        @if (hasMore()) {
+          <button class="btn btn--ghost btn--sm" (click)="loadMore()" [disabled]="loading()">Load More</button>
+        }
       </div>
 
-      <!-- Products Cards Grid -->
-      @if (loading()) {
+      <!-- Products grid -->
+      @if (loading() && products().length === 0) {
         <div class="products-grid">
           @for (i of [1,2,3,4,5,6]; track i) {
             <div class="product-card skeleton-card">
-              <div class="skeleton skeleton--title"></div>
-              <div class="skeleton skeleton--line mt-8"></div>
-              <div class="skeleton skeleton--line mt-4"></div>
-              <div class="skeleton skeleton--sm mt-12"></div>
+              <div class="skeleton skeleton--md" style="width:70%;margin-bottom:.75rem"></div>
+              <div class="skeleton skeleton--sm" style="width:50%;margin-bottom:.5rem"></div>
+              <div class="skeleton skeleton--sm" style="width:40%"></div>
             </div>
           }
         </div>
       } @else if (products().length === 0) {
         <div class="empty-state">
-          <div class="empty-state__icon">💊</div>
-          <h3>No medicines yet</h3>
-          <p>Add your first medicine to start managing inventory.</p>
-          <button class="btn btn--primary" (click)="openAddModal()">+ Add First Medicine</button>
+          <span class="empty-state__icon">💊</span>
+          <h3 class="empty-state__title">No medicines yet</h3>
+          <p class="empty-state__desc">Add your first medicine to start managing inventory.</p>
+          <button class="btn btn--primary" (click)="openAdd()">+ Add Medicine</button>
         </div>
       } @else {
         <div class="products-grid">
           @for (p of products(); track p._id) {
-            <div class="product-card" [class.product-card--expiring]="isExpiringSoon(p.expDate)" [class.product-card--expired]="isExpired(p.expDate)">
+            <div class="product-card"
+              [class.product-card--expiring]="isExpiringSoon(p.expDate)"
+              [class.product-card--expired]="isExpired(p.expDate)">
               <div class="product-card__top">
                 <div class="product-card__name">{{ p.productName }}</div>
-                @if (p.sch) { <span class="sch-pill">{{ p.sch }}</span> }
+                <div class="product-card__badges">
+                  @if (p.sch) { <span class="sch-badge sch-badge--{{ p.sch.toLowerCase() }}">{{ p.sch }}</span> }
+                  @if (p.quantity < 5) { <span class="badge badge--danger">Low</span> }
+                </div>
               </div>
               <div class="product-card__company">{{ p.mfgCompany }}</div>
+              @if (p.supplierName) {
+                <div class="product-card__supplier">🏭 {{ p.supplierName }}</div>
+              }
               <div class="product-card__meta">
-                <span class="meta-item"><strong>Batch:</strong> {{ p.batch }}</span>
-                <span class="meta-item"><strong>HSN:</strong> {{ p.hsnNo }}</span>
-                @if (p.pack) { <span class="meta-item"><strong>Pack:</strong> {{ p.pack }}</span> }
+                <span><strong>Batch:</strong> {{ p.batch }}</span>
+                <span><strong>HSN:</strong> {{ p.hsnNo }}</span>
+                @if (p.pack) { <span><strong>Pack:</strong> {{ p.pack }}</span> }
               </div>
               <div class="product-card__pricing">
-                <div class="price-row">
-                  <span class="price-label">MRP</span>
-                  <span class="price-val">₹{{ p.mrp | number:'1.2-2' }}</span>
-                </div>
-                <div class="price-row">
-                  <span class="price-label">Rate</span>
-                  <span class="price-val">₹{{ p.rate | number:'1.2-2' }}</span>
-                </div>
+                <div class="price-item"><span>MRP</span><strong>₹{{ p.mrp | number:'1.2-2' }}</strong></div>
+                <div class="price-item"><span>Rate</span><strong>₹{{ p.rate | number:'1.2-2' }}</strong></div>
+                <div class="price-item"><span>CGST</span><strong>{{ p.cgstPercent || 0 }}%</strong></div>
+                <div class="price-item"><span>SGST</span><strong>{{ p.sgstPercent || 0 }}%</strong></div>
               </div>
               <div class="product-card__footer">
                 <div class="exp-qty">
-                  <span class="exp-date" [class.exp-date--warn]="isExpiringSoon(p.expDate)" [class.exp-date--danger]="isExpired(p.expDate)">
+                  <span class="exp-date"
+                    [class.exp-date--warn]="isExpiringSoon(p.expDate)"
+                    [class.exp-date--danger]="isExpired(p.expDate)">
                     Exp: {{ p.expDate | date:'MMM yyyy' }}
                   </span>
-                  <span class="qty-chip" [class.qty-chip--low]="p.quantity < 5">Qty: {{ p.quantity }}</span>
+                  <span class="qty-chip" [class.qty-chip--low]="p.quantity < 5">
+                    Qty: {{ p.quantity }}
+                  </span>
                 </div>
                 <div class="card-actions">
-                  <button class="icon-btn icon-btn--edit" (click)="openEditModal(p)" title="Edit">✏</button>
-                  <button class="icon-btn icon-btn--delete" (click)="confirmDelete(p)" title="Delete">🗑</button>
+                  <button class="action-btn action-btn--edit"   (click)="openEdit(p)" title="Edit">✏</button>
+                  <button class="action-btn action-btn--delete" (click)="confirmDelete(p)" title="Delete">🗑</button>
                 </div>
               </div>
             </div>
           }
         </div>
       }
-
-      <!-- Load More -->
-      @if (hasMore()) {
-        <div class="load-more-wrap">
-          <button class="btn btn--ghost" (click)="loadMore()" [disabled]="loading()">
-            Load More Products
-          </button>
-        </div>
-      }
     </div>
 
-    <!-- Add/Edit Modal -->
+    <!-- ══ ADD / EDIT MODAL ══ -->
     @if (showModal()) {
       <div class="modal-overlay" @fadeIn (click)="closeModal()">
-        <div class="modal" @modalAnim (click)="$event.stopPropagation()">
+        <div class="modal modal--lg" @modalAnim (click)="$event.stopPropagation()">
           <div class="modal__header">
             <h2 class="modal__title">{{ editMode() ? 'Edit Medicine' : 'Add New Medicine' }}</h2>
             <button class="modal__close" (click)="closeModal()">✕</button>
           </div>
 
-          <form [formGroup]="productForm" (ngSubmit)="submitForm()" class="product-form">
-            <div class="form-grid">
-              <!-- Row 1 -->
+          <form [formGroup]="productForm" (ngSubmit)="submitForm()" class="modal__body">
+
+            <!-- ── Supplier search (autocomplete) ── -->
+            <div class="form-section-label">Supplier</div>
+            <div class="field mb-4">
+              <label class="field__label">Supplier Name (start typing to search)</label>
+              <div class="supplier-search-wrap">
+                <span class="supplier-search__icon">🏭</span>
+                <input
+                  type="text"
+                  [(ngModel)]="supplierSearch"
+                  [ngModelOptions]="{standalone:true}"
+                  (ngModelChange)="onSupplierSearch($event)"
+                  class="field__input supplier-search__input"
+                  placeholder="Search supplier by name..."
+                  autocomplete="off"
+                />
+                @if (supplierSearchLoading()) {
+                  <span class="spinner spinner--sm supplier-search__spinner"></span>
+                }
+                @if (selectedSupplier()) {
+                  <button type="button" class="supplier-search__clear" (click)="clearSupplier()">✕</button>
+                }
+              </div>
+
+              @if (supplierResults().length > 0) {
+                <div class="supplier-dropdown" @slideDown>
+                  @for (s of supplierResults(); track s._id) {
+                    <div class="supplier-option" (click)="selectSupplier(s)">
+                      <div class="supplier-option__name">{{ s.name }}</div>
+                      <div class="supplier-option__meta">
+                        {{ s.phone }}
+                        @if (s.address.city) { · {{ s.address!.city }} }
+                        @if (s.gstNo) { · GST: {{ s.gstNo }} }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (selectedSupplier()) {
+                <div class="supplier-selected" @fadeIn>
+                  <span class="supplier-selected__icon">✓</span>
+                  <div class="supplier-selected__info">
+                    <strong>{{ selectedSupplier()!.name }}</strong>
+                    <span class="supplier-selected__address">{{ supplierAddressDisplay() }}</span>
+                  </div>
+                  <span class="supplier-selected__tag">Auto-populated</span>
+                </div>
+              }
+            </div>
+
+            <!-- ── Product details ── -->
+            <div class="form-section-label">Product Information</div>
+            <div class="form-grid-3">
               <div class="field field--span2">
                 <label class="field__label">Product Name <span class="req">*</span></label>
                 <input formControlName="productName" type="text" class="field__input"
-                  [class.field__input--error]="isInvalid('productName')"
-                  placeholder="e.g. Paracetamol 500mg" />
-                @if (isInvalid('productName')) { <span class="field__error">Product name is required.</span> }
+                  [class.field__input--error]="fi('productName')" placeholder="Paracetamol 500mg" />
+                @if (fi('productName')) { <span class="field__error">Product name is required.</span> }
               </div>
-
               <div class="field">
                 <label class="field__label">HSN No. <span class="req">*</span></label>
                 <input formControlName="hsnNo" type="text" class="field__input"
-                  [class.field__input--error]="isInvalid('hsnNo')"
-                  placeholder="3004" />
-                @if (isInvalid('hsnNo')) { <span class="field__error">HSN No. is required.</span> }
+                  [class.field__input--error]="fi('hsnNo')" placeholder="3004" />
+                @if (fi('hsnNo')) { <span class="field__error">HSN is required.</span> }
               </div>
-
-              <div class="field">
+              <div class="field field--span2">
                 <label class="field__label">Mfg. Company <span class="req">*</span></label>
                 <input formControlName="mfgCompany" type="text" class="field__input"
-                  [class.field__input--error]="isInvalid('mfgCompany')"
-                  placeholder="e.g. Cipla Ltd" />
-                @if (isInvalid('mfgCompany')) { <span class="field__error">Company is required.</span> }
+                  [class.field__input--error]="fi('mfgCompany')" placeholder="Cipla Ltd." />
+                @if (fi('mfgCompany')) { <span class="field__error">Company is required.</span> }
               </div>
-
               <div class="field">
                 <label class="field__label">Batch No. <span class="req">*</span></label>
                 <input formControlName="batch" type="text" class="field__input"
-                  [class.field__input--error]="isInvalid('batch')"
-                  placeholder="e.g. B2024001" />
-                @if (isInvalid('batch')) { <span class="field__error">Batch is required.</span> }
+                  [class.field__input--error]="fi('batch')" placeholder="CP2401A" />
+                @if (fi('batch')) { <span class="field__error">Batch is required.</span> }
               </div>
-
               <div class="field">
                 <label class="field__label">Pack</label>
-                <input formControlName="pack" type="text" class="field__input" placeholder="e.g. 10x10" />
+                <input formControlName="pack" type="text" class="field__input" placeholder="10x10" />
               </div>
-
               <div class="field">
                 <label class="field__label">Schedule (Sch)</label>
-                <select formControlName="sch" class="field__input field__select">
-                  <option value="">None</option>
+                <select formControlName="sch" class="field__input">
+                  <option value="">None / OTC</option>
                   @for (s of schedules; track s) { <option [value]="s">{{ s }}</option> }
                 </select>
               </div>
-
               <div class="field">
                 <label class="field__label">Expiry Date <span class="req">*</span></label>
                 <input formControlName="expDate" type="month" class="field__input"
-                  [class.field__input--error]="isInvalid('expDate')" />
-                @if (isInvalid('expDate')) { <span class="field__error">Expiry date is required.</span> }
-              </div>
-
-              <!-- Pricing Row -->
-              <div class="field">
-                <label class="field__label">MRP (₹) <span class="req">*</span></label>
-                <input formControlName="mrp" type="number" step="0.01" min="0" class="field__input"
-                  [class.field__input--error]="isInvalid('mrp')" placeholder="0.00" />
-                @if (isInvalid('mrp')) { <span class="field__error">Valid MRP is required.</span> }
-              </div>
-
-              <div class="field">
-                <label class="field__label">Rate (₹) <span class="req">*</span></label>
-                <input formControlName="rate" type="number" step="0.01" min="0" class="field__input"
-                  [class.field__input--error]="isInvalid('rate')" placeholder="0.00"
-                  (input)="recalcTax()" />
-                @if (isInvalid('rate')) { <span class="field__error">Valid rate is required.</span> }
-              </div>
-
-              <div class="field">
-                <label class="field__label">Quantity <span class="req">*</span></label>
-                <input formControlName="quantity" type="number" min="0" step="1" class="field__input"
-                  [class.field__input--error]="isInvalid('quantity')" placeholder="0" />
-                @if (isInvalid('quantity')) { <span class="field__error">Quantity is required.</span> }
-              </div>
-
-              <div class="field">
-                <label class="field__label">Discount %</label>
-                <input formControlName="discPercent" type="number" min="0" max="100" step="0.01" class="field__input"
-                  placeholder="0" (input)="recalcTax()" />
-              </div>
-
-              <!-- GST Row -->
-              <div class="field">
-                <label class="field__label">CGST %</label>
-                <input formControlName="cgstPercent" type="number" min="0" step="0.5" class="field__input"
-                  placeholder="0" (input)="recalcTax()" />
-              </div>
-
-              <div class="field">
-                <label class="field__label">SGST %</label>
-                <input formControlName="sgstPercent" type="number" min="0" step="0.5" class="field__input"
-                  placeholder="0" (input)="recalcTax()" />
+                  [class.field__input--error]="fi('expDate')" />
+                @if (fi('expDate')) { <span class="field__error">Expiry date is required.</span> }
               </div>
             </div>
 
-            <!-- Auto-calculated preview -->
+            <!-- ── Pricing & Tax ── -->
+            <div class="form-section-label mt-4">Pricing & Tax</div>
+            <div class="form-grid-3">
+              <div class="field">
+                <label class="field__label">MRP (₹) <span class="req">*</span></label>
+                <input formControlName="mrp" type="number" step="0.01" min="0" class="field__input"
+                  [class.field__input--error]="fi('mrp')" placeholder="0.00" />
+                @if (fi('mrp')) { <span class="field__error">Valid MRP required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Rate (₹) <span class="req">*</span></label>
+                <input formControlName="rate" type="number" step="0.01" min="0" class="field__input"
+                  [class.field__input--error]="fi('rate')" placeholder="0.00"
+                  (input)="recalcTax()" />
+                @if (fi('rate')) { <span class="field__error">Valid rate required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Quantity <span class="req">*</span></label>
+                <input formControlName="quantity" type="number" min="0" step="1" class="field__input"
+                  [class.field__input--error]="fi('quantity')" placeholder="0" />
+                @if (fi('quantity')) { <span class="field__error">Quantity required.</span> }
+              </div>
+              <div class="field">
+                <label class="field__label">Discount %</label>
+                <input formControlName="discPercent" type="number" min="0" max="100" step="0.01"
+                  class="field__input" placeholder="0" (input)="recalcTax()" />
+              </div>
+              <div class="field">
+                <label class="field__label">CGST %</label>
+                <input formControlName="cgstPercent" type="number" min="0" step="0.5"
+                  class="field__input" placeholder="6" (input)="recalcTax()" />
+              </div>
+              <div class="field">
+                <label class="field__label">SGST %</label>
+                <input formControlName="sgstPercent" type="number" min="0" step="0.5"
+                  class="field__input" placeholder="6" (input)="recalcTax()" />
+              </div>
+            </div>
+
+            <!-- Tax preview -->
             @if (taxPreview()) {
-              <div class="tax-preview">
-                <div class="tax-preview__title">Tax Calculation Preview</div>
-                <div class="tax-preview__grid">
-                  <div class="tax-item"><span>Taxable Amount</span><strong>₹{{ taxPreview()!.taxable | number:'1.2-2' }}</strong></div>
-                  <div class="tax-item"><span>CGST ({{ productForm.get('cgstPercent')?.value || 0 }}%)</span><strong>₹{{ taxPreview()!.cgst | number:'1.2-2' }}</strong></div>
-                  <div class="tax-item"><span>SGST ({{ productForm.get('sgstPercent')?.value || 0 }}%)</span><strong>₹{{ taxPreview()!.sgst | number:'1.2-2' }}</strong></div>
-                  <div class="tax-item tax-item--total"><span>Total (per unit)</span><strong>₹{{ taxPreview()!.total | number:'1.2-2' }}</strong></div>
+              <div class="tax-preview" @fadeIn>
+                <div class="tax-preview__label">Tax Preview (per unit)</div>
+                <div class="tax-preview__values">
+                  <div class="tp-item"><span>Taxable</span><strong>₹{{ taxPreview()!.taxable | number:'1.2-2' }}</strong></div>
+                  <div class="tp-item"><span>CGST</span><strong>₹{{ taxPreview()!.cgst | number:'1.2-2' }}</strong></div>
+                  <div class="tp-item"><span>SGST</span><strong>₹{{ taxPreview()!.sgst | number:'1.2-2' }}</strong></div>
+                  <div class="tp-item tp-item--total"><span>Total/unit</span><strong>₹{{ taxPreview()!.total | number:'1.2-2' }}</strong></div>
                 </div>
               </div>
             }
@@ -217,16 +257,18 @@
       </div>
     }
 
-    <!-- Delete Confirm -->
+    <!-- Delete confirm -->
     @if (showDeleteModal()) {
       <div class="modal-overlay" @fadeIn (click)="closeDeleteModal()">
-        <div class="modal modal--sm" @modalAnim (click)="$event.stopPropagation()">
+        <div class="modal modal--sm modal--centered" @modalAnim (click)="$event.stopPropagation()">
           <div class="modal__icon">🗑</div>
           <h3 class="modal__title">Delete Medicine</h3>
-          <p class="modal__desc">Delete <strong>{{ deleteTarget()?.productName }}</strong>? This cannot be undone.</p>
-          <div class="modal__actions">
+          <p class="modal__desc">
+            Delete <strong>{{ deleteTarget()?.productName }}</strong>? This action cannot be undone.
+          </p>
+          <div style="display:flex;gap:.75rem;justify-content:center">
             <button class="btn btn--ghost" (click)="closeDeleteModal()">Cancel</button>
-            <button class="btn btn--danger" (click)="deleteProduct()" [disabled]="deleteLoading()">
+            <button class="btn btn--danger" (click)="doDelete()" [disabled]="deleteLoading()">
               {{ deleteLoading() ? 'Deleting...' : 'Delete' }}
             </button>
           </div>

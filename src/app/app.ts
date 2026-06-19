@@ -15,17 +15,36 @@ import { LoadingService } from './core/services/loading';
   animations: [
     trigger('routeAnim', [
       transition('* <=> *', [
-        style({ opacity: 0, transform: 'translateY(10px)' }),
-        animate('280ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+        style({ opacity: 0, transform: 'translateY(8px)' }),
+        animate('260ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
       ]),
     ]),
     trigger('toastAnim', [
-      transition(':enter', [style({ opacity: 0, transform: 'translateX(100%)' }), animate('240ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))]),
-      transition(':leave', [animate('180ms ease-in', style({ opacity: 0, transform: 'translateX(100%)' }))]),
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateX(110%)' }),
+        animate('240ms ease-out', style({ opacity: 1, transform: 'translateX(0)' })),
+      ]),
+      transition(':leave', [
+        animate('180ms ease-in', style({ opacity: 0, transform: 'translateX(110%)' })),
+      ]),
     ]),
     trigger('submenuAnim', [
-      transition(':enter', [style({ opacity: 0, transform: 'translateY(-6px)', height: '0' }), animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)', height: '*' }))]),
-      transition(':leave', [animate('150ms ease-in', style({ opacity: 0, transform: 'translateY(-4px)', height: '0' }))]),
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-6px)', height: '0', overflow: 'hidden' }),
+        animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)', height: '*' })),
+      ]),
+      transition(':leave', [
+        animate('150ms ease-in', style({ opacity: 0, height: '0', overflow: 'hidden' })),
+      ]),
+    ]),
+    trigger('mobileMenuAnim', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(100%)' }),
+        animate('250ms cubic-bezier(0.34,1.56,0.64,1)', style({ opacity: 1, transform: 'translateY(0)' })),
+      ]),
+      transition(':leave', [
+        animate('180ms ease-in', style({ opacity: 0, transform: 'translateY(100%)' })),
+      ]),
     ]),
   ],
   templateUrl: './app.html',
@@ -37,11 +56,12 @@ export class App {
   private loadingService = inject(LoadingService);
   private router         = inject(Router);
 
-  isLoggedIn       = this.authService.isAuthenticated;
-  toasts           = this.toastService.toasts;
-  isLoading        = this.loadingService.isLoading;
-  sidebarCollapsed = signal(false);
-  mastersOpen      = signal(false);
+  isLoggedIn        = this.authService.isAuthenticated;
+  toasts            = this.toastService.toasts;
+  isLoading         = this.loadingService.isLoading;
+  sidebarCollapsed  = signal(false);
+  mastersOpen       = signal(false);
+  mobileMastersOpen = signal(false);
 
   userName    = computed(() => this.authService.currentUser()?.name || '');
   userRole    = computed(() => this.authService.currentUser()?.role || '');
@@ -50,9 +70,10 @@ export class App {
   isOnMasters = computed(() => this.router.url.startsWith('/masters'));
 
   toastIcon(type: string): string {
-    return ({ success:'✓', error:'✕', warning:'⚠', info:'ℹ' } as Record<string,string>)[type] || 'ℹ';
+    const m: Record<string, string> = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+    return m[type] || 'ℹ';
   }
 
   removeToast(id: string): void { this.toastService.remove(id); }
-  logout(): void { this.authService.logout(); }
+  logout(): void { this.mobileMastersOpen.set(false); this.authService.logout(); }
 }
