@@ -1,9 +1,8 @@
-// src/app/features/masters/firm/firm.component.ts
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { FirmService } from '../../../core/services/firm.service';
+import { FirmService, FirmMaster } from '../../../core/services/firm.service';
 import { INDIAN_STATES } from '../../../shared/models/product.model';
 import { Toast } from '../../../core/services/toast';
 
@@ -22,10 +21,11 @@ export class FirmComponent implements OnInit {
   private toast = inject(Toast);
   private fb    = inject(FormBuilder);
 
-  loading = signal(true);
-  saving  = signal(false);
-  states  = INDIAN_STATES;
-  private firmId = '';
+  loading  = signal(true);
+  saving   = signal(false);
+  editing  = signal(false);
+  firmData = signal<FirmMaster | null>(null);
+  states   = INDIAN_STATES;
 
   form = this.fb.group({
     firmName:        ['', Validators.required],
@@ -49,11 +49,25 @@ export class FirmComponent implements OnInit {
   ngOnInit(): void {
     this.svc.getFirm().subscribe({
       next: (r) => {
-        if (r.data) { this.firmId = r.data._id || ''; this.form.patchValue(r.data as any); }
+        if (r.data) {
+          this.firmData.set(r.data);
+          this.editing.set(false); // show preview, not form
+        } else {
+          this.editing.set(true); // no firm yet → go straight to setup form
+        }
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  startEdit(): void {
+    if (this.firmData()) this.form.patchValue(this.firmData() as any);
+    this.editing.set(true);
+  }
+
+  cancelEdit(): void {
+    if (this.firmData()) this.editing.set(false);
   }
 
   fi(f: string): boolean { const c = this.form.get(f); return !!(c?.invalid && c?.touched); }
@@ -63,7 +77,12 @@ export class FirmComponent implements OnInit {
     if (this.form.invalid) return;
     this.saving.set(true);
     this.svc.saveFirm(this.form.value as any).subscribe({
-      next: () => { this.toast.success('Firm details saved successfully.'); this.saving.set(false); },
+      next: (r) => {
+        this.toast.success('Firm details saved successfully.');
+        this.saving.set(false);
+        if (r.data) this.firmData.set(r.data);
+        this.editing.set(false);
+      },
       error: () => this.saving.set(false),
     });
   }

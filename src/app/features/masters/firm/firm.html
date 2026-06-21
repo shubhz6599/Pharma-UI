@@ -4,6 +4,9 @@
           <h1 class="page-title">Firm Master</h1>
           <p class="page-subtitle">Your pharmacy's details — used on every invoice header</p>
         </div>
+        @if (!loading() && firmData() && !editing()) {
+          <button class="btn btn--primary" (click)="startEdit()">✏ Edit Details</button>
+        }
       </header>
 
       @if (loading()) {
@@ -13,8 +16,66 @@
           <div class="skeleton skeleton--md" style="width:100%;margin-bottom:.75rem"></div>
           <div class="skeleton skeleton--md" style="width:60%"></div>
         </div>
+
+      } @else if (!firmData() && !editing()) {
+        <!-- No firm set up yet -->
+        <div class="empty-state">
+          <span class="empty-state__icon">🏢</span>
+          <h3 class="empty-state__title">No firm details yet</h3>
+          <p class="empty-state__desc">Set up your pharmacy's details to appear on every GST invoice.</p>
+          <button class="btn btn--primary" (click)="startEdit()">+ Set Up Firm Details</button>
+        </div>
+
+      } @else if (firmData() && !editing()) {
+        <!-- ═══ READ-ONLY PREVIEW ═══ -->
+        <div class="section-card firm-preview" @fadeIn>
+          <div class="firm-preview__header">
+            <div class="firm-preview__name">{{ firmData()!.firmName }}</div>
+            @if (firmData()!.ownerName) { <div class="firm-preview__owner">Owner: {{ firmData()!.ownerName }}</div> }
+          </div>
+
+          <div class="preview-grid">
+            <div class="preview-section">
+              <div class="preview-section__title">Contact</div>
+              <div class="preview-row"><span>Phone</span><strong>{{ firmData()!.phone }}</strong></div>
+              @if (firmData()!.alternatePhone) { <div class="preview-row"><span>Alt. Phone</span><strong>{{ firmData()!.alternatePhone }}</strong></div> }
+              @if (firmData()!.email) { <div class="preview-row"><span>Email</span><strong>{{ firmData()!.email }}</strong></div> }
+            </div>
+
+            <div class="preview-section">
+              <div class="preview-section__title">Legal & Tax</div>
+              <div class="preview-row"><span>GSTIN</span><strong class="font-mono">{{ firmData()!.gstNo || '—' }}</strong></div>
+              <div class="preview-row"><span>PAN</span><strong class="font-mono">{{ firmData()!.panNo || '—' }}</strong></div>
+              <div class="preview-row"><span>D.L. No. 1</span><strong class="font-mono">{{ firmData()!.drugLicenseNo1 || '—' }}</strong></div>
+              <div class="preview-row"><span>D.L. No. 2</span><strong class="font-mono">{{ firmData()!.drugLicenseNo2 || '—' }}</strong></div>
+            </div>
+
+            <div class="preview-section preview-section--full">
+              <div class="preview-section__title">Address</div>
+              <div class="address-block">
+                {{ firmData()!.address }}<br>
+                {{ firmData()!.city }}, {{ firmData()!.state }} — {{ firmData()!.pincode }}
+              </div>
+            </div>
+
+            @if (firmData()!.bankName || firmData()!.accountNo) {
+              <div class="preview-section preview-section--full">
+                <div class="preview-section__title">Bank Details</div>
+                <div class="preview-row"><span>Bank</span><strong>{{ firmData()!.bankName || '—' }}</strong></div>
+                <div class="preview-row"><span>Account No.</span><strong class="font-mono">{{ firmData()!.accountNo || '—' }}</strong></div>
+                <div class="preview-row"><span>IFSC</span><strong class="font-mono">{{ firmData()!.ifscCode || '—' }}</strong></div>
+              </div>
+            }
+          </div>
+        </div>
+
       } @else {
+        <!-- ═══ EDIT FORM ═══ -->
         <form [formGroup]="form" (ngSubmit)="save()" class="section-card" @fadeIn>
+          @if (firmData()) {
+            <button type="button" class="back-btn" (click)="cancelEdit()">← Back to Preview</button>
+          }
+
           <div class="form-section-label">Basic Details</div>
           <div class="form-grid-2">
             <div class="field field--span2">
@@ -105,6 +166,9 @@
           </div>
 
           <div class="form-actions">
+            @if (firmData()) {
+              <button type="button" class="btn btn--ghost" (click)="cancelEdit()">Cancel</button>
+            }
             <button type="submit" class="btn btn--primary" [disabled]="saving()">
               @if (saving()) { <span class="btn-spinner"></span> }
               {{ saving() ? 'Saving...' : 'Save Firm Details' }}
