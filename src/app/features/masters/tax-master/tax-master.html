@@ -1,1 +1,90 @@
-<p>tax-master works!</p>
+   <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Tax Master</h1>
+          <p class="page-subtitle">Define GST slabs used across products and billing</p>
+        </div>
+        <button class="btn btn--primary" (click)="openAdd()">+ Add Tax Slab</button>
+      </header>
+
+      @if (loading()) {
+        <div class="tax-grid">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="tax-card skeleton-card">
+              <div class="skeleton skeleton--md" style="width:60%;margin-bottom:.75rem"></div>
+              <div class="skeleton skeleton--lg" style="width:40%"></div>
+            </div>
+          }
+        </div>
+      } @else if (items().length === 0) {
+        <div class="empty-state">
+          <span class="empty-state__icon">🧾</span>
+          <h3 class="empty-state__title">No tax slabs yet</h3>
+          <p class="empty-state__desc">Add GST slabs like 5%, 12%, 18% to apply consistently.</p>
+          <button class="btn btn--primary" (click)="openAdd()">+ Add Tax Slab</button>
+        </div>
+      } @else {
+        <div class="tax-grid">
+          @for (t of items(); track t._id) {
+            <div class="tax-card" @fadeIn>
+              <div class="tax-card__top">
+                <span class="tax-card__name">{{ t.name }}</span>
+                <span class="tax-card__total">{{ t.totalPercent || (t.cgstPercent + t.sgstPercent) }}%</span>
+              </div>
+              <div class="tax-card__split">
+                <div class="split-item"><span>CGST</span><strong>{{ t.cgstPercent }}%</strong></div>
+                <div class="split-item"><span>SGST</span><strong>{{ t.sgstPercent }}%</strong></div>
+                @if (t.igstPercent) { <div class="split-item"><span>IGST</span><strong>{{ t.igstPercent }}%</strong></div> }
+              </div>
+              @if (t.hsnCodes) { <div class="tax-card__hsn">HSN: {{ t.hsnCodes }}</div> }
+              <div class="tax-card__actions">
+                <button class="action-btn action-btn--edit" (click)="openEdit(t)">✏</button>
+                <button class="action-btn action-btn--delete" (click)="remove(t)">🗑</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (showModal()) {
+      <div class="modal-overlay" @fadeIn (click)="showModal.set(false)">
+        <div class="modal modal--sm" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ editMode() ? 'Edit Tax Slab' : 'Add Tax Slab' }}</h2>
+            <button class="modal__close" (click)="showModal.set(false)">✕</button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
+            <div class="field mb-3">
+              <label class="field__label">Slab Name <span class="req">*</span></label>
+              <input formControlName="name" type="text" class="field__input" [class.field__input--error]="fi('name')" placeholder="GST 12%" />
+              @if (fi('name')) { <span class="field__error">Name is required.</span> }
+            </div>
+            <div class="form-row mb-3">
+              <div class="field">
+                <label class="field__label">CGST %</label>
+                <input formControlName="cgstPercent" type="number" min="0" step="0.5" class="field__input" placeholder="6" />
+              </div>
+              <div class="field">
+                <label class="field__label">SGST %</label>
+                <input formControlName="sgstPercent" type="number" min="0" step="0.5" class="field__input" placeholder="6" />
+              </div>
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">IGST % <span class="hint">(for inter-state)</span></label>
+              <input formControlName="igstPercent" type="number" min="0" step="0.5" class="field__input" placeholder="0" />
+            </div>
+            <div class="field">
+              <label class="field__label">Applicable HSN Codes <span class="hint">(comma-separated)</span></label>
+              <input formControlName="hsnCodes" type="text" class="field__input" placeholder="3004, 2936" />
+            </div>
+            <div class="modal__footer" style="padding:1.25rem 0 0;border-top:1px solid var(--border);margin-top:1.25rem;display:flex;justify-content:flex-end;gap:.75rem">
+              <button type="button" class="btn btn--ghost" (click)="showModal.set(false)">Cancel</button>
+              <button type="submit" class="btn btn--primary" [disabled]="saving()">
+                {{ saving() ? 'Saving...' : (editMode() ? 'Update' : 'Add Slab') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }

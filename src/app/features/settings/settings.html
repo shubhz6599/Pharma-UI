@@ -1,0 +1,144 @@
+ <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">User administration, backups, and app information</p>
+        </div>
+      </header>
+
+      <div class="settings-tabs">
+        <button class="settings-tab" [class.settings-tab--active]="tab()==='users'"  (click)="tab.set('users'); loadUsers()">👤 User Admin</button>
+        <button class="settings-tab" [class.settings-tab--active]="tab()==='backup'" (click)="tab.set('backup')">💾 Backup & Restore</button>
+        <button class="settings-tab" [class.settings-tab--active]="tab()==='app'"    (click)="tab.set('app'); loadAppInfo()">ℹ Update App</button>
+      </div>
+
+      <!-- ══ USER ADMIN ══ -->
+      @if (tab() === 'users') {
+        <div class="table-card" @fadeIn>
+          @if (usersLoading()) {
+            <div class="skeleton-rows">
+              @for (i of [1,2,3]; track i) {
+                <div class="skeleton-row-item">
+                  @for (w of ['150px','180px','100px','90px']; track w) { <div class="skeleton skeleton--sm" [style.width]="w"></div> }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th class="td--center">Actions</th></tr></thead>
+                <tbody>
+                  @for (u of users(); track u.id) {
+                    <tr class="table-row">
+                      <td class="td--primary">{{ u.name }}<br><span class="td--muted" style="font-size:.72rem">{{ '@' + u.username }}</span></td>
+                      <td class="td--muted">{{ u.email }}</td>
+                      <td class="td--mono">{{ u.phone }}</td>
+                      <td>
+                        <select class="role-select" [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" [disabled]="u.id === currentUserId()">
+                          <option value="admin">Admin</option>
+                          <option value="pharmacist">Pharmacist</option>
+                          <option value="billing">Billing</option>
+                        </select>
+                      </td>
+                      <td>
+                        <span class="badge" [class.badge--teal]="u.isVerified" [class.badge--neutral]="!u.isVerified">
+                          {{ u.isVerified ? 'Verified' : 'Pending' }}
+                        </span>
+                      </td>
+                      <td class="td--center">
+                        @if (u.id !== currentUserId()) {
+                          <button class="action-btn action-btn--delete" (click)="confirmRemove(u)" title="Remove user">🗑</button>
+                        } @else {
+                          <span class="self-tag">You</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ══ BACKUP & RESTORE ══ -->
+      @if (tab() === 'backup') {
+        <div class="backup-grid" @fadeIn>
+          <div class="section-card">
+            <div class="section-title">💾 Create Backup</div>
+            <p class="backup-desc">Download a complete JSON snapshot of products, bills, suppliers, customers, and all master data.</p>
+            <button class="btn btn--primary" (click)="downloadBackup()" [disabled]="backupLoading()">
+              @if (backupLoading()) { <span class="btn-spinner"></span> Generating... } @else { ⬇ Download Backup }
+            </button>
+          </div>
+
+          <div class="section-card">
+            <div class="section-title">📤 Restore Backup</div>
+            <p class="backup-desc backup-desc--warn">⚠ Restoring will replace all current data with the backup file contents. This cannot be undone.</p>
+            <input type="file" accept=".json" (change)="onFileSelected($event)" class="file-input" #fileInput />
+            <button class="btn btn--ghost" (click)="fileInput.click()">📁 Choose Backup File</button>
+            @if (selectedFileName()) {
+              <div class="selected-file">
+                <span>{{ selectedFileName() }}</span>
+                <button class="btn btn--danger btn--sm" (click)="confirmRestore()" [disabled]="restoreLoading()">
+                  @if (restoreLoading()) { <span class="btn-spinner"></span> Restoring... } @else { Restore Now }
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ══ APP INFO ══ -->
+      @if (tab() === 'app') {
+        <div class="section-card" @fadeIn style="max-width:480px">
+          @if (appInfoLoading()) {
+            <div class="skeleton skeleton--lg" style="width:50%;margin-bottom:1rem"></div>
+            <div class="skeleton skeleton--sm" style="width:80%"></div>
+          } @else if (appInfo()) {
+            <div class="app-version-row">
+              <span class="app-version-row__label">Current Version</span>
+              <span class="app-version-row__val">{{ appInfo()!.currentVersion }}</span>
+            </div>
+            @if (appInfo()!.updateAvailable) {
+              <div class="update-banner">
+                <span>🎉 New version {{ appInfo()!.latestVersion }} available!</span>
+                <button class="btn btn--primary btn--sm">Update Now</button>
+              </div>
+            } @else {
+              <div class="up-to-date">✓ {{ appInfo()!.releaseNotes }}</div>
+            }
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Remove user confirm -->
+    @if (removeTarget()) {
+      <div class="modal-overlay" @fadeIn (click)="removeTarget.set(null)">
+        <div class="modal modal--sm modal--centered" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__icon">🗑</div>
+          <h3 class="modal__title">Remove User</h3>
+          <p class="modal__desc">Remove <strong>{{ removeTarget()!.name }}</strong>? They will lose access immediately.</p>
+          <div style="display:flex;gap:.75rem;justify-content:center">
+            <button class="btn btn--ghost" (click)="removeTarget.set(null)">Cancel</button>
+            <button class="btn btn--danger" (click)="doRemove()">Remove</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Restore confirm -->
+    @if (showRestoreConfirm()) {
+      <div class="modal-overlay" @fadeIn (click)="showRestoreConfirm.set(false)">
+        <div class="modal modal--sm modal--centered" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__icon">⚠</div>
+          <h3 class="modal__title">Confirm Restore</h3>
+          <p class="modal__desc">This will permanently replace ALL current data with the backup file. Are you absolutely sure?</p>
+          <div style="display:flex;gap:.75rem;justify-content:center">
+            <button class="btn btn--ghost" (click)="showRestoreConfirm.set(false)">Cancel</button>
+            <button class="btn btn--danger" (click)="doRestore()">Yes, Restore</button>
+          </div>
+        </div>
+      </div>
+    }

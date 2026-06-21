@@ -1,0 +1,21 @@
+   .tax-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+    @media(max-width:480px){ .tax-grid{ grid-template-columns:1fr; } }
+    .tax-card { background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.125rem; transition:all 200ms; }
+    .tax-card:hover { border-color:rgba(20,184,166,.25); transform:translateY(-1px); }
+    .skeleton-card:hover { transform:none; }
+    .tax-card__top { display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+    .tax-card__name { font-size:.9rem; font-weight:700; color:var(--text-primary); }
+    .tax-card__total { font-size:1.25rem; font-weight:800; color:var(--accent-teal); }
+    .tax-card__split { display:flex; gap:1rem; margin-bottom:.5rem; }
+    .split-item { display:flex; flex-direction:column; gap:.125rem; }
+    .split-item span { font-size:.65rem; color:var(--text-muted); text-transform:uppercase; }
+    .split-item strong { font-size:.8125rem; color:var(--text-secondary); }
+    .tax-card__hsn { font-size:.72rem; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:.75rem; }
+    .tax-card__actions { display:flex; gap:.375rem; }
+    .field { display:flex; flex-direction:column; gap:.375rem; }
+    .field__label { font-size:.8125rem; font-weight:600; color:var(--text-secondary); }
+    .req { color:var(--danger); }
+    .hint { color:var(--text-muted); font-weight:400; font-size:.72rem; }
+    .field__error { font-size:.72rem; color:#f87171; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .mb-3 { margin-bottom:.875rem; }

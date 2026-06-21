@@ -1,0 +1,9 @@
+  .filter-bar { margin-bottom:1.25rem; }
+    .skeleton-rows { padding:.75rem 1rem; display:flex; flex-direction:column; gap:.5rem; }
+    .skeleton-row-item { display:flex; gap:1.25rem; align-items:center; padding:.625rem 0; border-bottom:1px solid var(--border); }
+    .skeleton-row-item:last-child { border-bottom:none; }
+    .field { display:flex; flex-direction:column; gap:.375rem; }
+    .field__label { font-size:.8125rem; font-weight:600; color:var(--text-secondary); }
+    .req { color:var(--danger); }
+    .field__error { font-size:.72rem; color:#f87171; }
+    .mb-3 { margin-bottom:.875rem; }

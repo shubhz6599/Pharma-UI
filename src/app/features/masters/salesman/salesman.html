@@ -1,1 +1,95 @@
-<p>salesman works!</p>
+  <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Salesman Master</h1>
+          <p class="page-subtitle">Manage your sales staff for billing attribution</p>
+        </div>
+        <button class="btn btn--primary" (click)="openAdd()">+ Add Salesman</button>
+      </header>
+
+      <div class="filter-bar">
+        <div class="search-field" style="flex:1;max-width:320px">
+          <span class="search-field__icon">⌕</span>
+          <input type="text" [(ngModel)]="searchQ" (ngModelChange)="load()" class="field__input search-field__input" placeholder="Search salesman..." />
+        </div>
+      </div>
+
+      <div class="table-card">
+        @if (loading()) {
+          <div class="skeleton-rows">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="skeleton-row-item">
+                @for (w of ['160px','110px','100px','80px']; track w) { <div class="skeleton skeleton--sm" [style.width]="w"></div> }
+              </div>
+            }
+          </div>
+        } @else if (items().length === 0) {
+          <div class="empty-state">
+            <span class="empty-state__icon">🧑‍💼</span>
+            <h3 class="empty-state__title">No salesmen yet</h3>
+            <p class="empty-state__desc">Add salesmen to track who handled each bill.</p>
+            <button class="btn btn--primary" (click)="openAdd()">+ Add Salesman</button>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Area</th><th>Commission</th><th class="td--center">Actions</th></tr></thead>
+              <tbody>
+                @for (s of items(); track s._id) {
+                  <tr class="table-row" @fadeIn>
+                    <td class="td--primary">{{ s.name }}</td>
+                    <td class="td--mono">{{ s.phone || '—' }}</td>
+                    <td>{{ s.area || '—' }}</td>
+                    <td>{{ s.commissionPercent || 0 }}%</td>
+                    <td class="td--center">
+                      <button class="action-btn action-btn--edit" (click)="openEdit(s)">✏</button>
+                      <button class="action-btn action-btn--delete" (click)="remove(s)">🗑</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (showModal()) {
+      <div class="modal-overlay" @fadeIn (click)="showModal.set(false)">
+        <div class="modal modal--sm" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ editMode() ? 'Edit Salesman' : 'Add Salesman' }}</h2>
+            <button class="modal__close" (click)="showModal.set(false)">✕</button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
+            <div class="field mb-3">
+              <label class="field__label">Name <span class="req">*</span></label>
+              <input formControlName="name" type="text" class="field__input" [class.field__input--error]="fi('name')" placeholder="Rahul Kumar" />
+              @if (fi('name')) { <span class="field__error">Name is required.</span> }
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">Phone</label>
+              <input formControlName="phone" type="tel" class="field__input" placeholder="9876543210" />
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">Email</label>
+              <input formControlName="email" type="email" class="field__input" placeholder="(optional)" />
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">Area / Territory</label>
+              <input formControlName="area" type="text" class="field__input" placeholder="Ahilyanagar City" />
+            </div>
+            <div class="field">
+              <label class="field__label">Commission %</label>
+              <input formControlName="commissionPercent" type="number" min="0" max="100" step="0.5" class="field__input" placeholder="0" />
+            </div>
+            <div class="modal__footer" style="padding:1.25rem 0 0;border-top:1px solid var(--border);margin-top:1.25rem;display:flex;justify-content:flex-end;gap:.75rem">
+              <button type="button" class="btn btn--ghost" (click)="showModal.set(false)">Cancel</button>
+              <button type="submit" class="btn btn--primary" [disabled]="saving()">
+                {{ saving() ? 'Saving...' : (editMode() ? 'Update' : 'Add Salesman') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }

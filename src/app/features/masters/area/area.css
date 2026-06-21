@@ -1,0 +1,15 @@
+ .filter-bar { margin-bottom:1.25rem; }
+    .area-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+    @media(max-width:480px){ .area-grid{ grid-template-columns:1fr; } }
+    .area-card { background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.125rem; transition:all 200ms; position:relative; }
+    .area-card:hover { border-color:rgba(20,184,166,.25); transform:translateY(-1px); }
+    .skeleton-card:hover { transform:none; }
+    .area-card__name { font-size:.9375rem; font-weight:700; color:var(--text-primary); margin-bottom:.375rem; }
+    .area-card__loc { font-size:.8rem; color:var(--text-secondary); margin-bottom:.25rem; }
+    .area-card__pin { font-size:.72rem; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:.75rem; }
+    .area-card__actions { display:flex; gap:.375rem; }
+    .field { display:flex; flex-direction:column; gap:.375rem; }
+    .field__label { font-size:.8125rem; font-weight:600; color:var(--text-secondary); }
+    .req { color:var(--danger); }
+    .field__error { font-size:.72rem; color:#f87171; }
+    .mb-3 { margin-bottom:.875rem; }

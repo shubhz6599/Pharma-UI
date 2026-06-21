@@ -256,3 +256,5 @@
     @media (max-width: 480px) {
       .toast-container { left: 0.75rem; right: 0.75rem; max-width: none; top: 0.75rem; }
     }
+
+    .sidebar__divider { height: 1px; background: var(--border); margin: 0.5rem 0.625rem; flex-shrink: 0; }

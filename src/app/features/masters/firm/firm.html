@@ -1,1 +1,115 @@
-<p>firm works!</p>
+ <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Firm Master</h1>
+          <p class="page-subtitle">Your pharmacy's details — used on every invoice header</p>
+        </div>
+      </header>
+
+      @if (loading()) {
+        <div class="section-card">
+          <div class="skeleton skeleton--lg" style="width:40%;margin-bottom:1rem"></div>
+          <div class="skeleton skeleton--md" style="width:100%;margin-bottom:.75rem"></div>
+          <div class="skeleton skeleton--md" style="width:100%;margin-bottom:.75rem"></div>
+          <div class="skeleton skeleton--md" style="width:60%"></div>
+        </div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="save()" class="section-card" @fadeIn>
+          <div class="form-section-label">Basic Details</div>
+          <div class="form-grid-2">
+            <div class="field field--span2">
+              <label class="field__label">Firm / Pharmacy Name <span class="req">*</span></label>
+              <input formControlName="firmName" type="text" class="field__input" [class.field__input--error]="fi('firmName')" placeholder="Rahul Agencies" />
+              @if (fi('firmName')) { <span class="field__error">Firm name is required.</span> }
+            </div>
+            <div class="field">
+              <label class="field__label">Owner Name</label>
+              <input formControlName="ownerName" type="text" class="field__input" placeholder="Mr. Rahul Shah" />
+            </div>
+            <div class="field">
+              <label class="field__label">Phone <span class="req">*</span></label>
+              <input formControlName="phone" type="tel" class="field__input" [class.field__input--error]="fi('phone')" placeholder="9325681800" />
+              @if (fi('phone')) { <span class="field__error">Phone is required.</span> }
+            </div>
+            <div class="field">
+              <label class="field__label">Alternate Phone</label>
+              <input formControlName="alternatePhone" type="tel" class="field__input" placeholder="(optional)" />
+            </div>
+            <div class="field">
+              <label class="field__label">Email</label>
+              <input formControlName="email" type="email" class="field__input" placeholder="contact@firm.com" />
+            </div>
+          </div>
+
+          <div class="form-section-label mt-4">Address</div>
+          <div class="form-grid-2">
+            <div class="field field--span2">
+              <label class="field__label">Address <span class="req">*</span></label>
+              <input formControlName="address" type="text" class="field__input" [class.field__input--error]="fi('address')" placeholder="'Ashirwad' Near T.V. Center & Krupal Ashram" />
+              @if (fi('address')) { <span class="field__error">Address is required.</span> }
+            </div>
+            <div class="field">
+              <label class="field__label">City <span class="req">*</span></label>
+              <input formControlName="city" type="text" class="field__input" [class.field__input--error]="fi('city')" placeholder="Ahilyanagar" />
+              @if (fi('city')) { <span class="field__error">City is required.</span> }
+            </div>
+            <div class="field">
+              <label class="field__label">State <span class="req">*</span></label>
+              <select formControlName="state" class="field__input" [class.field__input--error]="fi('state')">
+                <option value="">Select State</option>
+                @for (s of states; track s) { <option [value]="s">{{ s }}</option> }
+              </select>
+              @if (fi('state')) { <span class="field__error">State is required.</span> }
+            </div>
+            <div class="field">
+              <label class="field__label">Pincode <span class="req">*</span></label>
+              <input formControlName="pincode" type="text" maxlength="6" class="field__input" [class.field__input--error]="fi('pincode')" placeholder="414001" />
+              @if (fi('pincode')) { <span class="field__error">Valid 6-digit pincode required.</span> }
+            </div>
+          </div>
+
+          <div class="form-section-label mt-4">Legal & Tax</div>
+          <div class="form-grid-2">
+            <div class="field">
+              <label class="field__label">GSTIN</label>
+              <input formControlName="gstNo" type="text" class="field__input" placeholder="27ALLPG3700B1Z8" style="text-transform:uppercase" />
+            </div>
+            <div class="field">
+              <label class="field__label">PAN No.</label>
+              <input formControlName="panNo" type="text" class="field__input" placeholder="ALLPG3700B" style="text-transform:uppercase" />
+            </div>
+            <div class="field">
+              <label class="field__label">Drug License No. 1</label>
+              <input formControlName="drugLicenseNo1" type="text" class="field__input" placeholder="208-362455" />
+            </div>
+            <div class="field">
+              <label class="field__label">Drug License No. 2</label>
+              <input formControlName="drugLicenseNo2" type="text" class="field__input" placeholder="21B-362456" />
+            </div>
+          </div>
+
+          <div class="form-section-label mt-4">Bank Details (optional)</div>
+          <div class="form-grid-3">
+            <div class="field">
+              <label class="field__label">Bank Name</label>
+              <input formControlName="bankName" type="text" class="field__input" placeholder="HDFC Bank" />
+            </div>
+            <div class="field">
+              <label class="field__label">Account No.</label>
+              <input formControlName="accountNo" type="text" class="field__input" placeholder="50100XXXXXXX" />
+            </div>
+            <div class="field">
+              <label class="field__label">IFSC Code</label>
+              <input formControlName="ifscCode" type="text" class="field__input" placeholder="HDFC0001234" style="text-transform:uppercase" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary" [disabled]="saving()">
+              @if (saving()) { <span class="btn-spinner"></span> }
+              {{ saving() ? 'Saving...' : 'Save Firm Details' }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>

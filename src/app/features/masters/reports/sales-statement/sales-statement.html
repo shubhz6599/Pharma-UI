@@ -1,0 +1,123 @@
+  <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Sales Statement</h1>
+          <p class="page-subtitle">View and export sales performance over any date range</p>
+        </div>
+        @if (statement()) {
+          <button class="btn btn--ghost" (click)="exportCsv()">⬇ Export CSV</button>
+        }
+      </header>
+
+      <!-- Filters -->
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="field">
+            <label class="field__label">From Date</label>
+            <input type="date" [(ngModel)]="dateFrom" class="field__input" />
+          </div>
+          <div class="field">
+            <label class="field__label">To Date</label>
+            <input type="date" [(ngModel)]="dateTo" class="field__input" />
+          </div>
+          <div class="field">
+            <label class="field__label">Salesman</label>
+            <input type="text" [(ngModel)]="salesman" class="field__input" placeholder="Optional filter" />
+          </div>
+          <div class="field filter-row__btn">
+            <button class="btn btn--primary" (click)="load()" [disabled]="loading()">
+              @if (loading()) { <span class="btn-spinner"></span> } Generate
+            </button>
+          </div>
+        </div>
+        <div class="quick-ranges">
+          <button class="range-chip" (click)="setRange(0)">Today</button>
+          <button class="range-chip" (click)="setRange(7)">Last 7 days</button>
+          <button class="range-chip" (click)="setRange(30)">Last 30 days</button>
+          <button class="range-chip" (click)="setMonthToDate()">This Month</button>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="kpi-strip">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="kpi-chip"><div class="skeleton skeleton--lg" style="width:60%"></div></div>
+          }
+        </div>
+        <div class="table-card">
+          <div class="skeleton-rows">
+            @for (i of [1,2,3,4,5]; track i) {
+              <div class="skeleton-row-item">
+                @for (w of ['90px','120px','100px','60px','80px','90px']; track w) { <div class="skeleton skeleton--sm" [style.width]="w"></div> }
+              </div>
+            }
+          </div>
+        </div>
+      } @else if (!statement()) {
+        <div class="empty-state">
+          <span class="empty-state__icon">📊</span>
+          <h3 class="empty-state__title">Select a date range</h3>
+          <p class="empty-state__desc">Choose a period and click Generate to view the sales statement.</p>
+        </div>
+      } @else if (statement()!.bills.length === 0) {
+        <div class="empty-state">
+          <span class="empty-state__icon">🧾</span>
+          <h3 class="empty-state__title">No bills found</h3>
+          <p class="empty-state__desc">No sales were recorded in this period.</p>
+        </div>
+      } @else {
+        <!-- KPI strip -->
+        <div class="kpi-strip" @fadeIn>
+          <div class="kpi-chip">
+            <span class="kpi-chip__val">{{ statement()!.summary.totalBills }}</span>
+            <span class="kpi-chip__label">Total Bills</span>
+          </div>
+          <div class="kpi-chip">
+            <span class="kpi-chip__val">{{ statement()!.summary.totalItemsSold }}</span>
+            <span class="kpi-chip__label">Items Sold</span>
+          </div>
+          <div class="kpi-chip">
+            <span class="kpi-chip__val text-success">−₹{{ statement()!.summary.totalDiscount | number:'1.0-0' }}</span>
+            <span class="kpi-chip__label">Total Discount</span>
+          </div>
+          <div class="kpi-chip kpi-chip--highlight">
+            <span class="kpi-chip__val">₹{{ statement()!.summary.totalGrand | number:'1.0-0' }}</span>
+            <span class="kpi-chip__label">Net Revenue</span>
+          </div>
+        </div>
+
+        <!-- Bills table -->
+        <div class="table-card" @fadeIn>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr><th>Bill No</th><th>Date</th><th>Customer</th><th>Salesman</th><th class="td--center">Items</th><th class="td--number">Discount</th><th class="td--number">Tax</th><th class="td--number">Total</th></tr>
+              </thead>
+              <tbody>
+                @for (b of statement()!.bills; track b.billNo) {
+                  <tr class="table-row">
+                    <td><span class="bill-no-tag">{{ b.billNo }}</span></td>
+                    <td class="td--muted">{{ b.billDate | date:'dd MMM yy' }}</td>
+                    <td>{{ b.customerName || 'Walk-in' }}</td>
+                    <td>{{ b.salesman || '—' }}</td>
+                    <td class="td--center">{{ b.itemCount }}</td>
+                    <td class="td--number text-success">−₹{{ b.discount | number:'1.2-2' }}</td>
+                    <td class="td--number">₹{{ b.tax | number:'1.2-2' }}</td>
+                    <td class="td--number td--teal">₹{{ b.grandTotal | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="totals-row">
+                  <td colspan="4"><strong>Total</strong></td>
+                  <td class="td--center"><strong>{{ statement()!.summary.totalItemsSold }}</strong></td>
+                  <td class="td--number text-success"><strong>−₹{{ statement()!.summary.totalDiscount | number:'1.2-2' }}</strong></td>
+                  <td class="td--number"><strong>₹{{ statement()!.summary.totalTax | number:'1.2-2' }}</strong></td>
+                  <td class="td--number td--teal"><strong>₹{{ statement()!.summary.totalGrand | number:'1.2-2' }}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      }
+    </div>

@@ -1,82 +1,37 @@
 // src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard }  from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 
-
 export const routes: Routes = [
-  {
-    path: '',
-    redirectTo: '/dashboard',
-    pathMatch: 'full',
-  },
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   {
     path: 'auth',
     canActivate: [guestGuard],
     children: [
-      {
-        path: 'login',
-        loadComponent: () =>
-          import('./features/auth/login/login').then((m) => m.Login),
-        title: 'Login — PharmaTrack',
-      },
-      {
-        path: 'register',
-        loadComponent: () =>
-          import('./features/auth/register/register').then((m) => m.Register),
-        title: 'Register — PharmaTrack',
-      },
+      { path: 'login',    loadComponent: () => import('./features/auth/login/login').then(m => m.Login),       title: 'Login — PharmaTrack' },
+      { path: 'register', loadComponent: () => import('./features/auth/register/register').then(m => m.Register), title: 'Register — PharmaTrack' },
       { path: '', redirectTo: 'login', pathMatch: 'full' },
     ],
   },
-  {
-    path: 'dashboard',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/dashboard/dashboard').then((m) => m.Dashboard),
-    title: 'Dashboard — PharmaTrack',
-  },
-  {
-    path: 'inventory',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/inventory/inventory').then((m) => m.Inventory),
-    title: 'Inventory — PharmaTrack',
-  },
-  {
-    path: 'billing',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/billing/billing').then((m) => m.Billing),
-    title: 'Billing — PharmaTrack',
-  },
-  {
-    path: 'stock-ledger',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/stock-ledger/stock-ledger').then(
-        (m) => m.StockLedger
-      ),
-    title: 'Stock Ledger — PharmaTrack',
-  },
-  {
-    path: 'masters/suppliers',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/masters/supplier/supplier').then(
-        m => m.SupplierComponent),
-    title: 'Suppliers — PharmaTrack'
-  },
-  {
-    path: 'masters/customers',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/masters/customer/customer').then(
-        m => m.CustomerComponent),
-    title: 'Customers — PharmaTrack'
-  },
-  {
-    path: '**',
-    redirectTo: '/dashboard',
-  },
+  { path: 'dashboard',    canActivate: [authGuard], loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard),              title: 'Dashboard — PharmaTrack' },
+  { path: 'inventory',    canActivate: [authGuard], loadComponent: () => import('./features/inventory/inventory').then(m => m.Inventory),              title: 'Inventory — PharmaTrack' },
+  { path: 'billing',      canActivate: [authGuard], loadComponent: () => import('./features/billing/billing').then(m => m.Billing),                    title: 'Billing — PharmaTrack' },
+  { path: 'stock-ledger', canActivate: [authGuard], loadComponent: () => import('./features/stock-ledger/stock-ledger').then(m => m.StockLedger), title: 'Stock Ledger — PharmaTrack' },
+
+  // Masters
+  { path: 'masters/suppliers',  canActivate: [authGuard], loadComponent: () => import('./features/masters/supplier/supplier').then(m => m.SupplierComponent),       title: 'Suppliers — PharmaTrack' },
+  { path: 'masters/customers',  canActivate: [authGuard], loadComponent: () => import('./features/masters/customer/customer').then(m => m.CustomerComponent),       title: 'Customers — PharmaTrack' },
+  { path: 'masters/firm',       canActivate: [authGuard], loadComponent: () => import('./features/masters/firm/firm').then(m => m.FirmComponent),                   title: 'Firm Master — PharmaTrack' },
+  { path: 'masters/salesman',   canActivate: [authGuard], loadComponent: () => import('./features/masters/salesman/salesman').then(m => m.SalesmanComponent),       title: 'Salesman Master — PharmaTrack' },
+  { path: 'masters/area',       canActivate: [authGuard], loadComponent: () => import('./features/masters/area/area').then(m => m.AreaComponent),                   title: 'Area Master — PharmaTrack' },
+  { path: 'masters/tax-master', canActivate: [authGuard], loadComponent: () => import('./features/masters/tax-master/tax-master').then(m => m.TaxMasterComponent),  title: 'Tax Master — PharmaTrack' },
+
+  // Reports
+  { path: 'reports/sales-statement', canActivate: [authGuard], loadComponent: () => import('./features/masters/reports/sales-statement/sales-statement').then(m => m.SalesStatementComponent), title: 'Sales Statement — PharmaTrack' },
+
+  // Settings
+  { path: 'settings', canActivate: [authGuard], loadComponent: () => import('./features/settings/settings').then(m => m.Settings), title: 'Settings — PharmaTrack' },
+
+  { path: '**', redirectTo: '/dashboard' },
 ];

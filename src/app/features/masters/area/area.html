@@ -1,1 +1,89 @@
-<p>area works!</p>
+ <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Area Master</h1>
+          <p class="page-subtitle">Manage delivery / sales territories</p>
+        </div>
+        <button class="btn btn--primary" (click)="openAdd()">+ Add Area</button>
+      </header>
+
+      <div class="filter-bar">
+        <div class="search-field" style="flex:1;max-width:320px">
+          <span class="search-field__icon">⌕</span>
+          <input type="text" [(ngModel)]="searchQ" (ngModelChange)="load()" class="field__input search-field__input" placeholder="Search area..." />
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="area-grid">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="area-card skeleton-card">
+              <div class="skeleton skeleton--md" style="width:70%;margin-bottom:.5rem"></div>
+              <div class="skeleton skeleton--sm" style="width:50%"></div>
+            </div>
+          }
+        </div>
+      } @else if (items().length === 0) {
+        <div class="empty-state">
+          <span class="empty-state__icon">📍</span>
+          <h3 class="empty-state__title">No areas yet</h3>
+          <p class="empty-state__desc">Add territories to organize suppliers and salesmen.</p>
+          <button class="btn btn--primary" (click)="openAdd()">+ Add Area</button>
+        </div>
+      } @else {
+        <div class="area-grid">
+          @for (a of items(); track a._id) {
+            <div class="area-card" @fadeIn>
+              <div class="area-card__name">📍 {{ a.name }}</div>
+              @if (a.city || a.state) {
+                <div class="area-card__loc">{{ a.city }}{{ a.city && a.state ? ', ' : '' }}{{ a.state }}</div>
+              }
+              @if (a.pincode) { <div class="area-card__pin">PIN: {{ a.pincode }}</div> }
+              <div class="area-card__actions">
+                <button class="action-btn action-btn--edit" (click)="openEdit(a)">✏</button>
+                <button class="action-btn action-btn--delete" (click)="remove(a)">🗑</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (showModal()) {
+      <div class="modal-overlay" @fadeIn (click)="showModal.set(false)">
+        <div class="modal modal--sm" @modalAnim (click)="$event.stopPropagation()">
+          <div class="modal__header">
+            <h2 class="modal__title">{{ editMode() ? 'Edit Area' : 'Add Area' }}</h2>
+            <button class="modal__close" (click)="showModal.set(false)">✕</button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
+            <div class="field mb-3">
+              <label class="field__label">Area Name <span class="req">*</span></label>
+              <input formControlName="name" type="text" class="field__input" [class.field__input--error]="fi('name')" placeholder="Miskin Nagar" />
+              @if (fi('name')) { <span class="field__error">Area name is required.</span> }
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">City</label>
+              <input formControlName="city" type="text" class="field__input" placeholder="Ahilyanagar" />
+            </div>
+            <div class="field mb-3">
+              <label class="field__label">State</label>
+              <select formControlName="state" class="field__input">
+                <option value="">Select State</option>
+                @for (s of states; track s) { <option [value]="s">{{ s }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label">Pincode</label>
+              <input formControlName="pincode" type="text" maxlength="6" class="field__input" placeholder="414001" />
+            </div>
+            <div class="modal__footer" style="padding:1.25rem 0 0;border-top:1px solid var(--border);margin-top:1.25rem;display:flex;justify-content:flex-end;gap:.75rem">
+              <button type="button" class="btn btn--ghost" (click)="showModal.set(false)">Cancel</button>
+              <button type="submit" class="btn btn--primary" [disabled]="saving()">
+                {{ saving() ? 'Saving...' : (editMode() ? 'Update' : 'Add Area') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
