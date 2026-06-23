@@ -1,317 +1,104 @@
   <div class="page-wrap">
-      <!-- Header -->
       <header class="page-header">
         <div>
           <h1 class="page-title">Stock Ledger</h1>
-          <p class="page-subtitle">Track every stock movement — purchases, sales & adjustments</p>
+          <p class="page-subtitle">Batch-wise stock movement — purchases, sales, returns, adjustments</p>
         </div>
-        <button class="btn btn--primary" (click)="openModal()">+ Stock Entry</button>
       </header>
 
-      <!-- KPI Strip -->
-      <div class="ledger-kpis">
-        <div class="ledger-kpi ledger-kpi--purchase">
-          <span class="ledger-kpi__arrow">↑</span>
-          <div>
-            <div class="ledger-kpi__val">{{ kpis().purchased }}</div>
-            <div class="ledger-kpi__label">Units Purchased</div>
+      <!-- KPI strip -->
+      <div class="kpi-strip" @fadeIn>
+        @for (k of kpis(); track k.label) {
+          <div class="kpi-chip"[ngClass]="'kpi-chip--' + k.color">
+            <span class="kpi-chip__val">{{ k.val }}</span>
+            <span class="kpi-chip__label">{{ k.label }}</span>
           </div>
-        </div>
-        <div class="ledger-kpi ledger-kpi--sale">
-          <span class="ledger-kpi__arrow">↓</span>
-          <div>
-            <div class="ledger-kpi__val">{{ kpis().sold }}</div>
-            <div class="ledger-kpi__label">Units Sold</div>
-          </div>
-        </div>
-        <div class="ledger-kpi ledger-kpi--adjust">
-          <span class="ledger-kpi__arrow">⟳</span>
-          <div>
-            <div class="ledger-kpi__val">{{ kpis().adjusted }}</div>
-            <div class="ledger-kpi__label">Adjustments</div>
-          </div>
-        </div>
-        <div class="ledger-kpi ledger-kpi--total">
-          <span class="ledger-kpi__arrow">#</span>
-          <div>
-            <div class="ledger-kpi__val">{{ transactions().length }}</div>
-            <div class="ledger-kpi__label">Total Entries</div>
-          </div>
-        </div>
+        }
       </div>
 
-      <!-- Filter Bar -->
+      <!-- Filters -->
       <div class="filter-bar">
         <div class="search-field" style="flex:1;min-width:200px">
           <span class="search-field__icon">⌕</span>
-          <input
-            type="text"
-            [(ngModel)]="filterSearch"
-            (ngModelChange)="applyFilters()"
-            class="field__input search-field__input"
-            placeholder="Filter by medicine name or batch..."
-          />
-          @if (filterSearch) {
-            <button class="search-field__clear" (click)="filterSearch=''; applyFilters()">✕</button>
-          }
+          <input type="text" [(ngModel)]="searchQ" (ngModelChange)="onSearch()"
+            class="field__input search-field__input" placeholder="Search medicine name or batch..." />
         </div>
-        <select [(ngModel)]="filterType" (ngModelChange)="applyFilters()" class="field__input filter-select">
+        <select [(ngModel)]="typeFilter" (ngModelChange)="load()" class="field__input" style="width:160px">
           <option value="">All Types</option>
           <option value="purchase">Purchase</option>
           <option value="sale">Sale</option>
+          <option value="purchase_return">Purchase Return</option>
+          <option value="sale_return">Sale Return</option>
           <option value="adjustment">Adjustment</option>
         </select>
-        <button class="btn btn--ghost btn--sm" (click)="clearFilters()" [disabled]="!filterSearch && !filterType">
-          Clear Filters
-        </button>
+        <input type="date" [(ngModel)]="dateFrom" (change)="load()" class="field__input" style="width:145px" />
+        <input type="date" [(ngModel)]="dateTo"   (change)="load()" class="field__input" style="width:145px" />
+        <button class="btn btn--ghost" (click)="clearFilters()">✕ Clear</button>
       </div>
 
-      <!-- Transaction Table -->
+      <!-- Table -->
       <div class="table-card">
-        <!-- Loading skeletons -->
         @if (loading()) {
           <div class="skeleton-rows">
-            @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            @for (i of [1,2,3,4,5,6]; track i) {
               <div class="skeleton-row-item">
-                <div class="skeleton skeleton--sm" style="width:160px"></div>
-                <div class="skeleton skeleton--sm" style="width:80px"></div>
-                <div class="skeleton skeleton--sm" style="width:90px"></div>
-                <div class="skeleton skeleton--sm" style="width:45px"></div>
-                <div class="skeleton skeleton--sm" style="width:45px"></div>
-                <div class="skeleton skeleton--sm" style="width:45px"></div>
-                <div class="skeleton skeleton--sm" style="width:100px"></div>
-                <div class="skeleton skeleton--sm" style="width:130px"></div>
+                @for (w of ['130px','90px','80px','60px','60px','60px','80px']; track w) {
+                  <div class="skeleton skeleton--sm" [style.width]="w"></div>
+                }
               </div>
             }
           </div>
-        } @else if (filtered().length === 0) {
+        } @else if (transactions().length === 0) {
           <div class="empty-state">
-            <span class="empty-state__icon">≡</span>
-            <h3 class="empty-state__title">
-              {{ transactions().length === 0 ? 'No transactions yet' : 'No matching transactions' }}
-            </h3>
-            <p class="empty-state__desc">
-              @if (transactions().length === 0) {
-                Stock movements from purchases, billing and adjustments will appear here.
-              } @else {
-                Try different filter criteria.
-              }
-            </p>
-            @if (filterSearch || filterType) {
-              <button class="btn btn--ghost" (click)="clearFilters()">Clear Filters</button>
-            }
+            <span class="empty-state__icon">📋</span>
+            <h3 class="empty-state__title">No transactions found</h3>
+            <p class="empty-state__desc">Stock movements from purchases, sales, and returns appear here.</p>
           </div>
         } @else {
           <div class="table-responsive">
-            <table class="data-table" [@rowsIn]="filtered().length">
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th>Medicine</th>
-                  <th>Batch</th>
-                  <th>Type</th>
-                  <th class="td--center">Before</th>
-                  <th class="td--center">Change</th>
-                  <th class="td--center">After</th>
-                  <th>Reference</th>
                   <th>Date & Time</th>
-                  <th>Notes</th>
+                  <th>Medicine</th>
+                  <th>Batch No</th>
+                  <th>Type</th>
+                  <th class="td--number">Before</th>
+                  <th class="td--number">Change</th>
+                  <th class="td--number">After</th>
+                  <th>Reference</th>
                 </tr>
               </thead>
               <tbody>
-                @for (tx of filtered(); track tx._id) {
+                @for (t of transactions(); track t._id) {
                   <tr class="table-row" @fadeIn>
-                    <td class="td--primary">{{ tx.productName }}</td>
-                    <td class="td--mono">{{ tx.batch }}</td>
+                    <td class="td--muted">{{ t.createdAt | date:'dd MMM yy, hh:mm a' }}</td>
+                    <td class="td--primary">{{ t.productName }}</td>
+                    <td class="td--mono">{{ t.batchNo }}</td>
                     <td>
-                      <span class="type-badge type-badge--{{ tx.type }}">
-                        {{ tx.type === 'purchase' ? '↑ Purchase' : tx.type === 'sale' ? '↓ Sale' : '⟳ Adjust' }}
+                      <span class="type-badge type-badge--{{ t.type }}">
+                        {{ typeLabel(t.type) }}
                       </span>
                     </td>
-                    <td class="td--number td--center">{{ tx.quantityBefore }}</td>
-                    <td class="td--center">
-                      <span class="qty-change"
-                        [class.qty-change--pos]="tx.quantityChange > 0"
-                        [class.qty-change--neg]="tx.quantityChange < 0">
-                        {{ tx.quantityChange > 0 ? '+' : '' }}{{ tx.quantityChange }}
-                      </span>
+                    <td class="td--number td--muted">{{ t.quantityBefore }}</td>
+                    <td class="td--number" [class.td--teal]="t.quantityChange > 0" [class.td--danger]="t.quantityChange < 0">
+                      {{ t.quantityChange > 0 ? '+' : '' }}{{ t.quantityChange }}
                     </td>
-                    <td class="td--center">
-                      <span class="after-qty" [class.after-qty--low]="tx.quantityAfter < 5">
-                        {{ tx.quantityAfter }}
-                      </span>
-                    </td>
-                    <td class="td--mono td--muted">{{ tx.reference || '—' }}</td>
-                    <td class="td--muted" style="white-space:nowrap">{{ tx.createdAt | date:'dd MMM yy, hh:mm a' }}</td>
-                    <td class="td--muted">{{ tx.notes || '—' }}</td>
+                    <td class="td--number"><strong>{{ t.quantityAfter }}</strong></td>
+                    <td class="td--muted td--mono">{{ t.reference || '—' }}</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
 
-          <!-- Pagination -->
-          @if (totalPages() > 1) {
+          @if (pagination() && pagination()!.totalPages > 1) {
             <div class="pagination">
-              <button class="page-btn" [disabled]="currentPage() === 1" (click)="gotoPage(currentPage() - 1)">← Prev</button>
-              @for (p of pageNums(); track p) {
-                <button class="page-btn" [class.page-btn--active]="p === currentPage()" (click)="gotoPage(p)">{{ p }}</button>
-              }
-              <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="gotoPage(currentPage() + 1)">Next →</button>
-              <span class="page-info">
-                Showing {{ (currentPage()-1)*pageSize + 1 }}–{{ Math.min(currentPage()*pageSize, filtered().length) }}
-                of {{ filtered().length }}
-              </span>
+              <button class="page-btn" [disabled]="currentPage()===1" (click)="goPage(currentPage()-1)">← Prev</button>
+              <span class="page-info">Page {{ currentPage() }} / {{ pagination()!.totalPages }} · {{ pagination()!.total }} entries</span>
+              <button class="page-btn" [disabled]="currentPage()===pagination()!.totalPages" (click)="goPage(currentPage()+1)">Next →</button>
             </div>
           }
         }
       </div>
     </div>
-
-    <!-- ══════════════════════════════════
-         MANUAL STOCK ENTRY MODAL
-    ══════════════════════════════════ -->
-    @if (showModal()) {
-      <div class="modal-overlay" @fadeIn (click)="closeModal()">
-        <div class="modal modal--md" @modalAnim (click)="$event.stopPropagation()">
-          <div class="modal__header">
-            <h2 class="modal__title">Manual Stock Entry</h2>
-            <button class="modal__close" (click)="closeModal()" aria-label="Close">✕</button>
-          </div>
-
-          <div class="modal__body">
-            <!-- Step 1: Search medicine -->
-            <div class="entry-step">
-              <div class="step-label">
-                <span class="step-num">1</span> Select Medicine
-              </div>
-              <div class="field mt-2">
-                <div class="search-wrap">
-                  <span class="search-wrap__icon">⌕</span>
-                  <input
-                    type="text"
-                    [(ngModel)]="modalSearch"
-                    (ngModelChange)="searchProducts($event)"
-                    class="field__input search-wrap__input"
-                    placeholder="Search by name, batch, HSN..."
-                    autocomplete="off"
-                  />
-                  @if (modalSearchLoading()) {
-                    <span class="spinner spinner--sm" style="position:absolute;right:0.875rem"></span>
-                  }
-                </div>
-              </div>
-
-              @if (modalSearchResults().length > 0) {
-                <div class="product-dropdown" @fadeIn>
-                  @for (p of modalSearchResults(); track p._id) {
-                    <div class="product-option" (click)="selectProduct(p)">
-                      <strong>{{ p.productName }}</strong>
-                      <span>{{ p.mfgCompany }} &nbsp;·&nbsp; Batch: {{ p.batch }} &nbsp;·&nbsp; Current Qty: <strong>{{ p.quantity }}</strong></span>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-
-            <!-- Selected product info -->
-            @if (selectedProduct()) {
-              <div class="selected-info" @fadeIn>
-                <span class="selected-info__icon">💊</span>
-                <div class="selected-info__text">
-                  <strong>{{ selectedProduct()!.productName }}</strong>
-                  <span>{{ selectedProduct()!.mfgCompany }} &nbsp;·&nbsp; Batch: {{ selectedProduct()!.batch }}</span>
-                  <span>Current Stock: <strong class="text-teal">{{ selectedProduct()!.quantity }} units</strong></span>
-                </div>
-              </div>
-            }
-
-            <!-- Step 2: Entry details -->
-            <div class="entry-step mt-4">
-              <div class="step-label">
-                <span class="step-num">2</span> Entry Details
-              </div>
-              <div class="entry-grid mt-2">
-                <div class="field">
-                  <label class="field__label">Transaction Type <span class="req">*</span></label>
-                  <select [(ngModel)]="entryType" class="field__input">
-                    <option value="purchase">↑ Purchase  (Add to Stock)</option>
-                    <option value="sale">↓ Sale  (Deduct from Stock)</option>
-                    <option value="adjustment">⟳ Adjustment</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label class="field__label">Quantity <span class="req">*</span></label>
-                  <input
-                    type="number"
-                    [(ngModel)]="entryQty"
-                    class="field__input"
-                    [class.field__input--error]="entryQty < 1"
-                    min="1" placeholder="0"
-                    (ngModelChange)="entryQty = $event"
-                  />
-                  @if (entryQty > 0 && previewQty() < 0) {
-                    <span class="field__error">⚠ Insufficient stock! Only {{ selectedProduct()!.quantity }} available.</span>
-                  }
-                </div>
-                <div class="field">
-                  <label class="field__label">Reference No. <span class="field__hint-inline">(optional)</span></label>
-                  <input
-                    type="text"
-                    [(ngModel)]="entryRef"
-                    class="field__input"
-                    placeholder="PO No., Invoice No., etc."
-                  />
-                </div>
-                <div class="field">
-                  <label class="field__label">Notes <span class="field__hint-inline">(optional)</span></label>
-                  <input
-                    type="text"
-                    [(ngModel)]="entryNotes"
-                    class="field__input"
-                    placeholder="Reason or additional details..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Preview -->
-            @if (selectedProduct() && entryQty >= 1) {
-              <div class="stock-preview" @fadeIn>
-                <div class="preview-row">
-                  <span>Current Stock</span>
-                  <strong>{{ selectedProduct()!.quantity }}</strong>
-                </div>
-                <div class="preview-row">
-                  <span>{{ entryType === 'purchase' ? 'Adding' : 'Deducting' }}</span>
-                  <strong [class.text-teal]="entryType === 'purchase'" [class.text-danger]="entryType !== 'purchase'">
-                    {{ entryType === 'purchase' ? '+' : '−' }}{{ entryQty }}
-                  </strong>
-                </div>
-                <div class="preview-row preview-row--result">
-                  <span>After Entry</span>
-                  <strong [class.text-teal]="previewQty() >= 5" [class.text-warning]="previewQty() > 0 && previewQty() < 5" [class.text-danger]="previewQty() < 0">
-                    {{ previewQty() }}
-                    @if (previewQty() < 0) { <span> (Insufficient!)</span> }
-                    @else if (previewQty() < 5) { <span> (Low Stock)</span> }
-                  </strong>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="modal__footer">
-            <button class="btn btn--ghost" (click)="closeModal()">Cancel</button>
-            <button
-              class="btn btn--primary"
-              (click)="submitEntry()"
-              [disabled]="!canSubmit()">
-              @if (submitLoading()) {
-                <span class="btn-spinner"></span> Saving...
-              } @else {
-                Save Entry
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    }

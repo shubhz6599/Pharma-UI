@@ -1,10 +1,10 @@
 // src/app/features/billing/billing.component.ts
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate, stagger, query } from '@angular/animations';
-import { BillingService, GenerateBillPayload }  from '../../core/services/billing.service';
-import { Product, BillCartItem, Bill, Customer } from '../../shared/models/product.model';
+import { BillingService, GenerateBillPayload } from '../../core/services/billing.service';
+import { BatchSearchResult, BillCartItem, Bill, Customer } from '../../shared/models/product.model';
 import { ProductService } from '../../core/services/product';
 import { MastersService } from '../../core/services/masters';
 import { Toast } from '../../core/services/toast';
@@ -14,27 +14,17 @@ import { Toast } from '../../core/services/toast';
   standalone: true,
   imports: [CommonModule, FormsModule],
   animations: [
-    trigger('fadeIn', [
-      transition(':enter', [style({ opacity: 0, transform: 'translateY(6px)' }), animate('220ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))]),
-    ]),
+    trigger('fadeIn', [transition(':enter', [style({ opacity: 0, transform: 'translateY(6px)' }), animate('220ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))])]),
     trigger('slideDown', [
-      transition(':enter', [style({ opacity: 0, transform: 'translateY(-8px)', maxHeight: '0' }), animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)', maxHeight: '400px' }))]),
-      transition(':leave', [animate('150ms ease-in', style({ opacity: 0, maxHeight: '0' }))]),
-    ]),
-    trigger('cartStagger', [
-      transition('* => *', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'translateX(-10px)' }),
-          stagger(35, [animate('180ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))]),
-        ], { optional: true }),
-      ]),
+      transition(':enter', [style({ opacity: 0, transform: 'translateY(-6px)', maxHeight: '0' }), animate('180ms ease-out', style({ opacity: 1, transform: 'translateY(0)', maxHeight: '400px' }))]),
+      transition(':leave', [animate('130ms ease-in', style({ opacity: 0, maxHeight: '0' }))]),
     ]),
   ],
   templateUrl: './billing.html',
   styleUrl: './billing.css',
 })
 export class Billing implements OnInit{
-   private prodSvc    = inject(ProductService);
+ private prodSvc    = inject(ProductService);
   private billSvc    = inject(BillingService);
   private mastersSvc = inject(MastersService);
   private toast      = inject(Toast);
@@ -43,26 +33,24 @@ export class Billing implements OnInit{
   cart         = signal<BillCartItem[]>([]);
   generatedBill= signal<any>(null);
   billLoading  = signal(false);
+  paymentStatus: 'paid'|'partial'|'credit' = 'paid';
+  salesman = '';
 
-  // Customer
   custMode         = signal<'master'|'manual'>('master');
   custSearch       = '';
   custResults      = signal<Customer[]>([]);
-  custSearchLoading= signal(false);
   selectedCustomer = signal<Customer | null>(null);
-  manualCustName   = '';
-  manualCustPhone  = '';
-  manualCustAddress= '';
-  manualCustDlNo   = '';
-  manualCustGst    = '';
+  manualName = ''; manualPhone = ''; manualAddress = ''; manualDlNo = ''; manualGst = '';
 
-  // Product search
   prodSearch        = '';
-  prodResults       = signal<Product[]>([]);
+  batchResults      = signal<BatchSearchResult[]>([]);
   prodSearchLoading = signal(false);
 
-  // History
-  bills    = signal<Bill[]>([]);
+  showManualEntry = signal(false);
+  manualProdName = ''; manualBatchNo = ''; manualBatchExp = '';
+  manualBatchMrp = 0; manualBatchRate = 0; manualCgst = 6; manualSgst = 6;
+
+  bills     = signal<Bill[]>([]);
   histLoading = signal(false);
   histSearch  = '';
   histPage    = 1;
@@ -75,113 +63,115 @@ export class Billing implements OnInit{
   totals = computed(() => {
     let subtotal=0, discount=0, cgst=0, sgst=0;
     for (const i of this.cart()) {
-      const raw    = i.product.rate * i.quantity;
-      const disc   = raw * ((i.discPercent||0)/100);
-      const tax    = raw - disc;
+      const raw  = i.rate * i.quantity;
+      const disc = raw * ((i.discPercent||0)/100);
+      const tax  = raw - disc;
       subtotal += raw; discount += disc;
-      cgst += (tax * (i.product.cgstPercent||0)) / 100;
-      sgst += (tax * (i.product.sgstPercent||0)) / 100;
+      cgst += (tax * (i.cgstPercent||0)) / 100;
+      sgst += (tax * (i.sgstPercent||0)) / 100;
     }
     return { subtotal, discount, cgst, sgst, grand: subtotal - discount + cgst + sgst };
   });
 
   ngOnInit(): void {}
 
-  // ── Customer search ────────────────
   searchCustomers(val: string): void {
     clearTimeout(this.custTimer);
     this.selectedCustomer.set(null);
     if (val.length < 2) { this.custResults.set([]); return; }
-    this.custSearchLoading.set(true);
     this.custTimer = setTimeout(() => {
-      this.mastersSvc.getCustomers({ search: val, limit: 6 }).subscribe({
-        next:  r => { this.custResults.set(r.data ?? []); this.custSearchLoading.set(false); },
-        error: () => this.custSearchLoading.set(false),
-      });
+      this.mastersSvc.getCustomers({ search: val, limit: 6 }).subscribe({ next: r => this.custResults.set(r.data ?? []) });
     }, 280);
   }
-
-  selectCustomer(c: Customer): void {
-    this.selectedCustomer.set(c);
-    this.custSearch = c.name;
-    this.custResults.set([]);
-  }
-
+  selectCustomer(c: Customer): void { this.selectedCustomer.set(c); this.custSearch = c.name; this.custResults.set([]); }
   clearCustomer(): void { this.selectedCustomer.set(null); this.custSearch = ''; }
 
-  // ── Product search ─────────────────
-  searchProducts(val: string): void {
+  searchBatches(val: string): void {
     clearTimeout(this.prodTimer);
-    if (val.length < 2) { this.prodResults.set([]); return; }
+    if (val.length < 2) { this.batchResults.set([]); return; }
     this.prodSearchLoading.set(true);
     this.prodTimer = setTimeout(() => {
-      this.prodSvc.getProducts({ search: val, limit: 8 }).subscribe({
-        next:  r => { this.prodResults.set(r.data ?? []); this.prodSearchLoading.set(false); },
+      this.prodSvc.searchBatches(val, 10).subscribe({
+        next: r => { this.batchResults.set(r.data ?? []); this.prodSearchLoading.set(false); },
         error: () => this.prodSearchLoading.set(false),
       });
     }, 280);
   }
 
-  // ── Cart ops ───────────────────────
-  addToCart(p: Product): void {
-    if (p.quantity === 0) { this.toast.warning('Out of stock.'); return; }
-    const idx = this.cart().findIndex(i => i.product._id === p._id);
-    if (idx >= 0) {
-      if (this.cart()[idx].quantity >= p.quantity) { this.toast.warning(`Max available: ${p.quantity}`); return; }
-      const c = [...this.cart()]; c[idx] = { ...c[idx], quantity: c[idx].quantity + 1 }; this.cart.set(c);
-    } else {
-      this.cart.update(c => [...c, { product: p, quantity: 1, discPercent: p.discPercent || 0 }]);
+  addBatchToCart(b: BatchSearchResult): void {
+    const existing = this.cart().find(i => i.batchId === b.batchId);
+    if (existing) { this.toast.warning('This batch is already in the bill.'); return; }
+    this.cart.update(c => [...c, {
+      batchId: b.batchId, productId: b.productId, productName: b.productName,
+      hsnNo: b.hsnNo, mfgCompany: b.mfgCompany, unit: b.unit, sch: b.sch,
+      batchNo: b.batchNo, expDate: b.expDate, mrp: b.mrp, rate: b.saleRate,
+      quantity: 1, discPercent: b.discPercent || 0,
+      cgstPercent: b.cgstPercent, sgstPercent: b.sgstPercent,
+      availableStock: b.quantity, isManualBatch: false,
+    }]);
+    this.prodSearch = ''; this.batchResults.set([]);
+  }
+
+  openManualEntry(): void {
+    this.showManualEntry.set(true);
+    this.prodSearch = ''; this.batchResults.set([]);
+  }
+
+  addManualToCart(): void {
+    if (!this.manualProdName || !this.manualBatchNo || !this.manualBatchMrp) {
+      this.toast.error('Medicine name, batch number and MRP are required.'); return;
     }
-    this.prodSearch = ''; this.prodResults.set([]);
+    this.cart.update(c => [...c, {
+      batchId: undefined, productId: 'manual_' + Date.now(), productName: this.manualProdName,
+      batchNo: this.manualBatchNo, expDate: this.manualBatchExp ? new Date(this.manualBatchExp + '-01') : new Date(),
+      mrp: this.manualBatchMrp, rate: this.manualBatchRate || this.manualBatchMrp,
+      quantity: 1, discPercent: 0, cgstPercent: this.manualCgst, sgstPercent: this.manualSgst,
+      isManualBatch: true,
+    }]);
+    this.showManualEntry.set(false);
+    this.manualProdName = ''; this.manualBatchNo = ''; this.manualBatchExp = '';
+    this.manualBatchMrp = 0; this.manualBatchRate = 0;
   }
 
   updateQty(i: number, qty: number): void {
     if (qty < 1) { this.removeItem(i); return; }
     const c = [...this.cart()];
-    c[i] = { ...c[i], quantity: Math.min(qty, c[i].product.quantity) };
-    this.cart.set(c);
+    const item = c[i];
+    if (item.availableStock && qty > item.availableStock) {
+      this.toast.warning(`Only ${item.availableStock} in stock.`); return;
+    }
+    c[i] = { ...item, quantity: qty }; this.cart.set(c);
   }
-
-  updateDisc(i: number, d: number): void {
-    const c = [...this.cart()];
-    c[i] = { ...c[i], discPercent: Math.max(0, Math.min(100, d)) };
-    this.cart.set(c);
-  }
-
-  removeItem(i: number): void { this.cart.update(c => c.filter((_,idx) => idx !== i)); }
-  clearCart(): void { this.cart.set([]); this.generatedBill.set(null); }
+  updateDisc(i: number, d: number): void { const c=[...this.cart()]; c[i]={...c[i],discPercent:Math.max(0,Math.min(100,d))}; this.cart.set(c); }
+  removeItem(i: number): void { this.cart.update(c=>c.filter((_,idx)=>idx!==i)); }
 
   calcItem(item: BillCartItem): number {
-    const raw = item.product.rate * item.quantity;
-    const tax = raw * (1 - (item.discPercent||0)/100);
-    const c   = (tax * (item.product.cgstPercent||0)) / 100;
-    const s   = (tax * (item.product.sgstPercent||0)) / 100;
-    return tax + c + s;
+    const raw=item.rate*item.quantity, tax=raw*(1-(item.discPercent||0)/100);
+    return tax + (tax*(item.cgstPercent||0)/100) + (tax*(item.sgstPercent||0)/100);
   }
 
-  // ── Generate bill ──────────────────
   generateBill(): void {
     if (!this.cart().length) return;
     this.billLoading.set(true);
 
-    // Pick supplier from the first cart item's product
-    const firstProd = this.cart()[0].product;
-
     const payload: GenerateBillPayload = {
-      // Customer
-      customerId:        this.custMode() === 'master' ? this.selectedCustomer()?._id : undefined,
-      customerName:      this.custMode() === 'master' ? this.selectedCustomer()?.name  : this.manualCustName  || undefined,
-      customerPhone:     this.custMode() === 'master' ? this.selectedCustomer()?.phone : this.manualCustPhone || undefined,
-      customerAddress:   this.custMode() === 'master' ? this.selectedCustomer()?.fullAddress : this.manualCustAddress || undefined,
-      customerDlNo:      this.manualCustDlNo  || undefined,
-      customerGstNo:     this.manualCustGst   || undefined,
-      customerState:     'MAHARASHTRA',
-      customerStateCode: '27',
-      // Supplier (from product)
-      supplierName:    firstProd.supplierName    || undefined,
-      supplierAddress: firstProd.supplierAddress || undefined,
-      // Items
-      items: this.cart().map(i => ({ productId: i.product._id!, quantity: i.quantity, discPercent: i.discPercent })),
+      customerId:        this.custMode()==='master' ? this.selectedCustomer()?._id : undefined,
+      customerName:      this.custMode()==='master' ? this.selectedCustomer()?.name  : this.manualName  || undefined,
+      customerPhone:     this.custMode()==='master' ? this.selectedCustomer()?.phone : this.manualPhone || undefined,
+      customerAddress:   this.custMode()==='master' ? this.selectedCustomer()?.fullAddress : this.manualAddress || undefined,
+      customerDlNo:      this.manualDlNo  || undefined,
+      customerGstNo:     this.manualGst   || undefined,
+      customerState:     'MAHARASHTRA', customerStateCode: '27',
+      salesman:          this.salesman || undefined,
+      paymentStatus:     this.paymentStatus,
+      items: this.cart().map(i => ({
+        productId:    i.productId.startsWith('manual_') ? undefined as any : i.productId,
+        batchId:      i.batchId,
+        batchNo:      i.batchNo,
+        expDate:      i.expDate ? new Date(i.expDate).toISOString() : undefined,
+        mrp:          i.mrp, rate: i.rate, quantity: i.quantity,
+        discPercent:  i.discPercent, cgstPercent: i.cgstPercent, sgstPercent: i.sgstPercent,
+      })),
     };
 
     this.billSvc.generateBill(payload).subscribe({
@@ -189,9 +179,8 @@ export class Billing implements OnInit{
         this.generatedBill.set(r.data);
         this.billLoading.set(false);
         this.toast.success(`Invoice ${r.data?.billNo} generated!`);
-        this.cart.set([]);
-        this.clearCustomer();
-        this.manualCustName = this.manualCustPhone = this.manualCustAddress = this.manualCustDlNo = this.manualCustGst = '';
+        this.cart.set([]); this.clearCustomer();
+        this.manualName=this.manualPhone=this.manualAddress=this.manualDlNo=this.manualGst='';
       },
       error: () => this.billLoading.set(false),
     });
@@ -199,7 +188,6 @@ export class Billing implements OnInit{
 
   newBill(): void { this.generatedBill.set(null); }
 
-  // ── Print ──────────────────────────
   printBill(): void {
     const el = document.getElementById('gst-print-area');
     if (!el) return;
@@ -208,27 +196,16 @@ export class Billing implements OnInit{
     el.style.display = 'none';
   }
 
-  // ── History ────────────────────────
   switchHistory(): void { this.tab.set('history'); this.loadHistory(); }
-
-  onHistSearch(): void {
-    clearTimeout(this.histTimer);
-    this.histTimer = setTimeout(() => { this.histPage=1; this.loadHistory(); }, 320);
-  }
-
+  onHistSearch(): void { clearTimeout(this.histTimer); this.histTimer = setTimeout(()=>{ this.histPage=1; this.loadHistory(); },320); }
   loadHistory(): void {
     this.histLoading.set(true);
-    const p: Record<string,string> = { page: String(this.histPage), limit: '15' };
-    if (this.histSearch) p['billNo'] = this.histSearch;
-    this.billSvc.getBills(p).subscribe({
-      next:  r => { this.bills.set(r.data ?? []); this.histPag = r.pagination ?? null; this.histLoading.set(false); },
+    this.billSvc.getBills({ page: String(this.histPage), limit: '15', ...(this.histSearch?{billNo:this.histSearch}:{}) }).subscribe({
+      next: r => { this.bills.set(r.data??[]); this.histPag=r.pagination??null; this.histLoading.set(false); },
       error: () => this.histLoading.set(false),
     });
   }
 
-  isExpiringSoon(d: Date|string): boolean {
-    const exp = new Date(d), soon = new Date(); soon.setMonth(soon.getMonth()+1);
-    return exp > new Date() && exp <= soon;
-  }
-  isExpired(d: Date|string): boolean { return new Date(d) < new Date(); }
+  isExpiringSoon(d: Date|string): boolean { const e=new Date(d),s=new Date(); s.setMonth(s.getMonth()+1); return e>new Date()&&e<=s; }
+  isExpired(d: Date|string): boolean { return new Date(d)<new Date(); }
 }

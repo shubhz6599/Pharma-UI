@@ -1,0 +1,62 @@
+  <div class="page-wrap">
+      <header class="page-header">
+        <div><h1 class="page-title">GST Report</h1><p class="page-subtitle">CGST / SGST summary for sales and purchases</p></div>
+        @if (data()) { <button class="btn btn--ghost" (click)="exportCsv()">⬇ Export CSV</button> }
+      </header>
+
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="field"><label class="field__label">Type</label>
+            <select [(ngModel)]="gstType" class="field__input">
+              <option value="sales">Sales GST</option>
+              <option value="purchase">Purchase GST</option>
+            </select>
+          </div>
+          <div class="field"><label class="field__label">From Date</label><input type="date" [(ngModel)]="dateFrom" class="field__input" /></div>
+          <div class="field"><label class="field__label">To Date</label><input type="date" [(ngModel)]="dateTo" class="field__input" /></div>
+          <div class="field filter-btn"><button class="btn btn--primary" (click)="load()" [disabled]="loading()">
+            @if (loading()) { <span class="btn-spinner"></span> } Generate
+          </button></div>
+        </div>
+        <div class="quick-ranges">
+          <button class="range-chip" (click)="setRange(0)">Today</button>
+          <button class="range-chip" (click)="setRange(30)">Last 30 days</button>
+          <button class="range-chip" (click)="setMonthToDate()">This Month</button>
+        </div>
+      </div>
+
+      @if (data()) {
+        <div class="kpi-strip" @fadeIn>
+          <div class="kpi-chip"><span class="kpi-chip__val">₹{{ data()!.totals.taxable | number:'1.2-2' }}</span><span class="kpi-chip__label">Total Taxable</span></div>
+          <div class="kpi-chip"><span class="kpi-chip__val">₹{{ data()!.totals.cgst | number:'1.2-2' }}</span><span class="kpi-chip__label">Total CGST</span></div>
+          <div class="kpi-chip"><span class="kpi-chip__val">₹{{ data()!.totals.sgst | number:'1.2-2' }}</span><span class="kpi-chip__label">Total SGST</span></div>
+          <div class="kpi-chip kpi-chip--highlight"><span class="kpi-chip__val">₹{{ data()!.totals.total | number:'1.2-2' }}</span><span class="kpi-chip__label">Total Amount</span></div>
+        </div>
+        <div class="table-card" @fadeIn>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Ref No</th><th>Party</th><th>Product</th><th>HSN</th><th class="td--number">Taxable</th><th class="td--number">CGST%</th><th class="td--number">CGST Amt</th><th class="td--number">SGST%</th><th class="td--number">SGST Amt</th><th class="td--number">Total</th></tr></thead>
+              <tbody>
+                @for (r of data()!.rows; track $index) {
+                  <tr class="table-row">
+                    <td class="td--muted">{{ r.date | date:'dd MMM yy' }}</td>
+                    <td class="td--mono">{{ r.refNo }}</td>
+                    <td>{{ r.party }}</td>
+                    <td>{{ r.productName }}</td>
+                    <td class="td--mono">{{ r.hsnNo || '—' }}</td>
+                    <td class="td--number">₹{{ r.taxable | number:'1.2-2' }}</td>
+                    <td class="td--number">{{ r.cgstPct }}%</td>
+                    <td class="td--number">₹{{ r.cgstAmt | number:'1.2-2' }}</td>
+                    <td class="td--number">{{ r.sgstPct }}%</td>
+                    <td class="td--number">₹{{ r.sgstAmt | number:'1.2-2' }}</td>
+                    <td class="td--number td--teal">₹{{ r.total | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      } @else if (!loading()) {
+        <div class="empty-state"><span class="empty-state__icon">🧾</span><h3 class="empty-state__title">Select period & type</h3></div>
+      }
+    </div>

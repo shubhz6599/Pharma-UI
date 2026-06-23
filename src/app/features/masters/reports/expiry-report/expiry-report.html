@@ -1,0 +1,73 @@
+ <div class="page-wrap">
+      <header class="page-header">
+        <div><h1 class="page-title">Expiry Report</h1><p class="page-subtitle">Near-expiry (within 3 months) and expired stock</p></div>
+        @if (data()) { <button class="btn btn--ghost" (click)="exportCsv()">⬇ Export CSV</button> }
+      </header>
+
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="field"><label class="field__label">Report Type</label>
+            <select [(ngModel)]="expiryType" class="field__input">
+              <option value="expiring">Near Expiry (next 3 months)</option>
+              <option value="expired">Already Expired</option>
+            </select>
+          </div>
+          <div class="field filter-btn"><button class="btn btn--primary" (click)="load()" [disabled]="loading()">
+            @if (loading()) { <span class="btn-spinner"></span> } Generate
+          </button></div>
+        </div>
+      </div>
+
+      @if (data()) {
+        <div class="kpi-strip" @fadeIn>
+          <div class="kpi-chip" [class.kpi-chip--danger]="expiryType==='expired'" [class.kpi-chip--warn]="expiryType==='expiring'">
+            <span class="kpi-chip__val">{{ data()!.summary.totalBatches }}</span>
+            <span class="kpi-chip__label">{{ expiryType === 'expired' ? 'Expired Batches' : 'Expiring Batches' }}</span>
+          </div>
+          <div class="kpi-chip">
+            <span class="kpi-chip__val">{{ data()!.summary.totalQuantity }}</span>
+            <span class="kpi-chip__label">Total Quantity</span>
+          </div>
+          <div class="kpi-chip kpi-chip--danger">
+            <span class="kpi-chip__val">₹{{ data()!.summary.totalValue | number:'1.0-0' }}</span>
+            <span class="kpi-chip__label">Stock Value at Risk</span>
+          </div>
+        </div>
+
+        @if (data()!.rows.length === 0) {
+          <div class="empty-state" @fadeIn>
+            <span class="empty-state__icon">✅</span>
+            <h3 class="empty-state__title">{{ expiryType === 'expired' ? 'No expired stock!' : 'No near-expiry stock!' }}</h3>
+            <p class="empty-state__desc">{{ expiryType === 'expired' ? 'All batches are within validity.' : 'All batches expire after 3 months.' }}</p>
+          </div>
+        } @else {
+          <div class="table-card" @fadeIn>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead><tr><th>Medicine</th><th>Generic</th><th>Company</th><th>Category</th><th>Batch</th><th>Expiry Date</th><th class="td--number">Days Left</th><th class="td--number">Qty</th><th class="td--number">MRP</th><th class="td--number">Value</th></tr></thead>
+                <tbody>
+                  @for (r of data()!.rows; track r.batchNo) {
+                    <tr class="table-row" [class.row--expired]="r.daysLeft < 0" [class.row--warn]="r.daysLeft >= 0 && r.daysLeft <= 30">
+                      <td class="td--primary">{{ r.productName }}</td>
+                      <td class="td--muted">{{ r.genericName || '—' }}</td>
+                      <td class="td--muted">{{ r.mfgCompany }}</td>
+                      <td>{{ r.category || '—' }}</td>
+                      <td class="td--mono">{{ r.batchNo }}</td>
+                      <td [class.td--danger]="r.daysLeft < 0" [class.td--warn]="r.daysLeft >= 0 && r.daysLeft <= 30">{{ r.expDate | date:'dd MMM yyyy' }}</td>
+                      <td class="td--number" [class.td--danger]="r.daysLeft < 0" [class.td--warn]="r.daysLeft >= 0 && r.daysLeft <= 30">
+                        {{ r.daysLeft < 0 ? 'Expired ' + (-r.daysLeft) + 'd ago' : r.daysLeft + ' days' }}
+                      </td>
+                      <td class="td--number">{{ r.quantity }}</td>
+                      <td class="td--number">₹{{ r.mrp | number:'1.2-2' }}</td>
+                      <td class="td--number td--danger">₹{{ r.stockValue | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      } @else if (!loading()) {
+        <div class="empty-state"><span class="empty-state__icon">📅</span><h3 class="empty-state__title">Select type & generate</h3></div>
+      }
+    </div>

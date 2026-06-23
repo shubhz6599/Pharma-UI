@@ -1,3 +1,5 @@
+// src/app/shared/models/product.model.ts
+
 export interface User {
   id: string;
   name: string;
@@ -8,47 +10,73 @@ export interface User {
   isVerified: boolean;
 }
 
+// ── PRODUCT MASTER (catalog entry — no stock/batch data) ──────
 export interface Product {
   _id?: string;
   productName: string;
-  hsnNo: string;
+  genericName?: string;
   mfgCompany: string;
+  category?: string;
+  unit?: string;
+  hsnNo: string;
+  sch?: string;
+  minStockLevel: number;
   supplierId?: string;
   supplierName?: string;
   supplierAddress?: string;
-  batch: string;
-  pack?: string;
-  sch?: string;
-  expDate: Date | string;
-  mrp: number;
-  rate: number;
-  discPercent?: number;
-  taxableAmount?: number;
-  cgstPercent?: number;
-  cgstAmount?: number;
-  sgstPercent?: number;
-  sgstAmount?: number;
-  quantity: number;
+  isActive?: boolean;
+  // Optional enriched fields when fetched with includeBatches=true
+  totalStock?: number;
+  batchCount?: number;
+  nearestExpiry?: Date | string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
+// ── PRODUCT BATCH (a specific stock lot) ───────────────────────
+export interface ProductBatch {
+  _id?: string;
+  productId: string;
+  batchNo: string;
+  expDate: Date | string;
+  quantity: number;
+  mrp: number;
+  ptr: number;
+  saleRate: number;
+  discPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  schemeNote?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Flattened batch result returned by the billing batch-search endpoint
+export interface BatchSearchResult {
+  batchId: string;
+  productId: string;
+  productName: string;
+  genericName?: string;
+  mfgCompany: string;
+  hsnNo: string;
+  unit?: string;
+  sch?: string;
+  batchNo: string;
+  expDate: Date | string;
+  quantity: number;
+  mrp: number;
+  ptr: number;
+  saleRate: number;
+  discPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+}
+
 export interface ProductFilter {
   search?: string;
-  productName?: string;
+  category?: string;
   mfgCompany?: string;
-  hsnNo?: string;
-  batch?: string;
-  pack?: string;
-  sch?: string;
-  quantityMin?: number;
-  quantityMax?: number;
-  mrpMin?: number;
-  mrpMax?: number;
-  expDateFrom?: string;
-  expDateTo?: string;
-  expiringSoon?: boolean;
-  lowStock?: boolean;
+  includeBatches?: boolean;
   page?: number;
   limit?: number;
   sort?: string;
@@ -60,6 +88,11 @@ export interface DashboardStats {
   expiringSoon: number;
   lowStock: number;
   totalInventoryValue: number;
+  todaySales: number;
+  todaySalesCount: number;
+  todayPurchases: number;
+  todayPurchasesCount: number;
+  recentBills: { billNo: string; billDate: Date; customerName?: string; grandTotal: number }[];
 }
 
 export interface ApiResponse<T> {
@@ -77,11 +110,17 @@ export interface Pagination {
   totalPages: number;
 }
 
+// ── BILLING (Sales — stock OUT) ────────────────────────────────
 export interface BillItem {
   productId: string;
   productName: string;
+  hsnNo: string;
+  mfgCode?: string;
+  unit?: string;
+  sch?: string;
+  batchId?: string;
   batch: string;
-  expDate: string;
+  expDate: Date | string;
   mrp: number;
   rate: number;
   quantity: number;
@@ -105,27 +144,101 @@ export interface Bill {
   totalDiscount: number;
   totalTax: number;
   grandTotal: number;
+  amountPaid?: number;
+  paymentStatus?: 'paid' | 'partial' | 'credit';
+  isReturned?: boolean;
   createdAt?: Date;
 }
 
+// Cart item during billing — supports both a selected master batch AND free-text fallback
 export interface BillCartItem {
-  product: Product;
+  // From batch search (preferred path)
+  batchId?: string;
+  productId: string;
+  productName: string;
+  hsnNo?: string;
+  mfgCompany?: string;
+  unit?: string;
+  sch?: string;
+  batchNo: string;          // always present — either selected or manually typed
+  expDate: Date | string;
+  mrp: number;
+  rate: number;
   quantity: number;
   discPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  availableStock?: number;  // only known if batchId is set
+  isManualBatch: boolean;   // true if batch wasn't found in master and was typed in
 }
 
 export interface Transaction {
   _id?: string;
-  product: string;
+  productId: string;
   productName: string;
-  batch: string;
-  type: 'purchase' | 'sale' | 'adjustment';
+  batchNo: string;
+  type: 'purchase' | 'sale' | 'purchase_return' | 'sale_return' | 'adjustment';
   quantityBefore: number;
   quantityChange: number;
   quantityAfter: number;
   reference?: string;
   notes?: string;
   createdAt?: Date;
+}
+
+// ── PURCHASE (Supplier invoice — stock IN) ─────────────────────
+export interface PurchaseItem {
+  productId: string;
+  productName: string;
+  batchNo: string;
+  expDate: Date | string;
+  quantity: number;
+  freeQuantity: number;
+  schemeNote?: string;
+  mrp: number;
+  ptr: number;
+  discPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  taxableAmount?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  totalAmount?: number;
+}
+
+export interface Purchase {
+  _id?: string;
+  purchaseNo: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceNo: string;
+  invoiceDate: Date | string;
+  items: PurchaseItem[];
+  subtotal: number;
+  totalDiscount: number;
+  totalCgst: number;
+  totalSgst: number;
+  totalTax: number;
+  grandTotal: number;
+  paymentStatus: 'paid' | 'partial' | 'unpaid';
+  amountPaid: number;
+  createdAt?: Date;
+}
+
+// Cart item during purchase entry
+export interface PurchaseCartItem {
+  productId: string;
+  productName: string;
+  batchNo: string;
+  expDate: string;
+  quantity: number;
+  freeQuantity: number;
+  schemeNote?: string;
+  mrp: number;
+  ptr: number;
+  discPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
 }
 
 export interface Supplier {
@@ -145,6 +258,8 @@ export interface Supplier {
     pincode: string;
   };
   fullAddress?: string;
+  totalPurchases?: number;
+  outstandingDue?: number;
   isActive?: boolean;
 }
 
@@ -166,10 +281,13 @@ export interface Customer {
   fullAddress?: string;
   totalBills?: number;
   totalSpend?: number;
+  outstandingDue?: number;
   isActive?: boolean;
 }
 
 export const SCHEDULE_OPTIONS = ['H', 'H1', 'X', 'G', 'C', 'C1', 'OTC'];
+export const UNIT_OPTIONS = ['Strip', 'Bottle', 'Box', 'Vial', 'Tube', 'Sachet', 'Jar', 'Piece'];
+export const PRODUCT_CATEGORIES = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Drops', 'Inhaler', 'Powder', 'Surgical', 'General'];
 export const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
   'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',

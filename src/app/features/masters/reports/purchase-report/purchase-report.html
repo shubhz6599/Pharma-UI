@@ -1,0 +1,69 @@
+ <div class="page-wrap">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Purchase Report</h1>
+          <p class="page-subtitle">All supplier purchases within the selected period</p>
+        </div>
+        @if (data()) { <button class="btn btn--ghost" (click)="exportCsv()">⬇ Export CSV</button> }
+      </header>
+
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="field"><label class="field__label">From Date</label><input type="date" [(ngModel)]="dateFrom" class="field__input" /></div>
+          <div class="field"><label class="field__label">To Date</label><input type="date" [(ngModel)]="dateTo" class="field__input" /></div>
+          <div class="field filter-btn"><button class="btn btn--primary" (click)="load()" [disabled]="loading()">
+            @if (loading()) { <span class="btn-spinner"></span> } Generate
+          </button></div>
+        </div>
+        <div class="quick-ranges">
+          <button class="range-chip" (click)="setRange(0)">Today</button>
+          <button class="range-chip" (click)="setRange(7)">Last 7 days</button>
+          <button class="range-chip" (click)="setRange(30)">Last 30 days</button>
+          <button class="range-chip" (click)="setMonthToDate()">This Month</button>
+        </div>
+      </div>
+
+      @if (data()) {
+        <div class="kpi-strip" @fadeIn>
+          <div class="kpi-chip"><span class="kpi-chip__val">{{ data()!.summary.totalPurchases }}</span><span class="kpi-chip__label">Total Purchases</span></div>
+          <div class="kpi-chip"><span class="kpi-chip__val">{{ data()!.summary.totalItemsBought }}</span><span class="kpi-chip__label">Items Bought</span></div>
+          <div class="kpi-chip text-success"><span class="kpi-chip__val">−₹{{ data()!.summary.totalDiscount | number:'1.0-0' }}</span><span class="kpi-chip__label">Total Discount</span></div>
+          <div class="kpi-chip kpi-chip--highlight"><span class="kpi-chip__val">₹{{ data()!.summary.totalAmount | number:'1.0-0' }}</span><span class="kpi-chip__label">Total Amount</span></div>
+        </div>
+
+        <div class="table-card" @fadeIn>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Purchase No</th><th>Invoice No</th><th>Date</th><th>Supplier</th><th class="td--center">Items</th><th class="td--number">Discount</th><th class="td--number">Tax</th><th class="td--number">Total</th><th>Status</th></tr></thead>
+              <tbody>
+                @for (p of data()!.purchases; track p.purchaseNo) {
+                  <tr class="table-row">
+                    <td><span class="bill-tag">{{ p.purchaseNo }}</span></td>
+                    <td class="td--mono">{{ p.invoiceNo }}</td>
+                    <td class="td--muted">{{ p.invoiceDate | date:'dd MMM yy' }}</td>
+                    <td>{{ p.supplierName }}</td>
+                    <td class="td--center">{{ p.itemCount }}</td>
+                    <td class="td--number text-success">−₹{{ p.discount | number:'1.2-2' }}</td>
+                    <td class="td--number">₹{{ p.tax | number:'1.2-2' }}</td>
+                    <td class="td--number td--teal">₹{{ p.grandTotal | number:'1.2-2' }}</td>
+                    <td><span class="badge" [class.badge--teal]="p.paymentStatus==='paid'" [class.badge--neutral]="p.paymentStatus!=='paid'">{{ p.paymentStatus }}</span></td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="totals-row">
+                  <td colspan="4"><strong>Total</strong></td>
+                  <td class="td--center"><strong>{{ data()!.summary.totalItemsBought }}</strong></td>
+                  <td class="td--number text-success"><strong>−₹{{ data()!.summary.totalDiscount | number:'1.2-2' }}</strong></td>
+                  <td class="td--number"><strong>₹{{ data()!.summary.totalTax | number:'1.2-2' }}</strong></td>
+                  <td class="td--number td--teal"><strong>₹{{ data()!.summary.totalAmount | number:'1.2-2' }}</strong></td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      } @else if (!loading()) {
+        <div class="empty-state"><span class="empty-state__icon">📥</span><h3 class="empty-state__title">Select a date range</h3><p class="empty-state__desc">Choose a period and click Generate.</p></div>
+      }
+    </div>

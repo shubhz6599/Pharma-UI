@@ -1,17 +1,15 @@
-<!-- Global loading bar -->
 @if (isLoading()) {
-<div class="g-loading-bar" role="progressbar" aria-label="Loading">
+<div class="g-loading-bar">
   <div class="g-loading-bar__fill"></div>
 </div>
 }
 
-<!-- Toast container -->
 <div class="toast-container" role="status" aria-live="polite">
   @for (t of toasts(); track t.id) {
   <div class="toast toast--{{ t.type }}" @toastAnim>
     <span class="toast__icon">{{ toastIcon(t.type) }}</span>
     <span class="toast__msg">{{ t.message }}</span>
-    <button class="toast__close" (click)="removeToast(t.id)" aria-label="Dismiss">✕</button>
+    <button class="toast__close" (click)="removeToast(t.id)">✕</button>
   </div>
   }
 </div>
@@ -19,12 +17,8 @@
 @if (isLoggedIn()) {
 <div class="app-shell">
 
-  <!-- ══════════════════════════════════
-             DESKTOP SIDEBAR
-        ══════════════════════════════════ -->
+  <!-- ══ DESKTOP SIDEBAR ══ -->
   <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed()">
-
-    <!-- Brand -->
     <div class="sidebar__brand">
       <div class="brand-logo">⚕</div>
       @if (!sidebarCollapsed()) {
@@ -38,23 +32,36 @@
       }
     </div>
 
-    <!-- Nav links -->
     <nav class="sidebar__nav">
+      <!-- Dashboard -->
       <a routerLink="/dashboard" routerLinkActive="nav-link--active" class="nav-link"
         [title]="sidebarCollapsed() ? 'Dashboard' : ''">
         <span class="nav-icon">⊞</span>
         @if (!sidebarCollapsed()) { <span>Dashboard</span> }
       </a>
+
+      <!-- Medicines -->
       <a routerLink="/inventory" routerLinkActive="nav-link--active" class="nav-link"
-        [title]="sidebarCollapsed() ? 'Inventory' : ''">
+        [title]="sidebarCollapsed() ? 'Medicines' : ''">
         <span class="nav-icon">💊</span>
-        @if (!sidebarCollapsed()) { <span>Inventory</span> }
+        @if (!sidebarCollapsed()) { <span>Medicines</span> }
       </a>
+
+      <!-- Purchase (STOCK IN) -->
+      <a routerLink="/purchase" routerLinkActive="nav-link--active" class="nav-link"
+        [title]="sidebarCollapsed() ? 'Purchase' : ''">
+        <span class="nav-icon">📥</span>
+        @if (!sidebarCollapsed()) { <span>Purchase</span> }
+      </a>
+
+      <!-- Billing (STOCK OUT) -->
       <a routerLink="/billing" routerLinkActive="nav-link--active" class="nav-link"
         [title]="sidebarCollapsed() ? 'Billing' : ''">
         <span class="nav-icon">🧾</span>
         @if (!sidebarCollapsed()) { <span>Billing</span> }
       </a>
+
+      <!-- Stock Ledger -->
       <a routerLink="/stock-ledger" routerLinkActive="nav-link--active" class="nav-link"
         [title]="sidebarCollapsed() ? 'Stock Ledger' : ''">
         <span class="nav-icon">📋</span>
@@ -63,6 +70,7 @@
 
       <!-- Masters group -->
       @if (!sidebarCollapsed()) {
+      <div class="nav-divider"></div>
       <div class="nav-group">
         <button class="nav-link nav-link--group" [class.nav-link--group-open]="mastersOpen()"
           (click)="mastersOpen.set(!mastersOpen())">
@@ -72,190 +80,205 @@
         </button>
         @if (mastersOpen()) {
         <div class="nav-submenu" @submenuAnim>
-          <a routerLink="/masters/suppliers" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Supplier Master
-          </a>
-          <a routerLink="/masters/customers" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Customer Master
-          </a>
-          <a routerLink="/masters/firm" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Firm Master
-          </a>
-          <a routerLink="/masters/salesman" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Salesman Master
-          </a>
-          <a routerLink="/masters/area" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Area Master
-          </a>
-          <a routerLink="/masters/tax-master" routerLinkActive="nav-sublink--active" class="nav-sublink">
-            <span class="sublink-dot"></span>Tax Master
-          </a>
+          <a routerLink="/masters/suppliers" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Supplier Master</a>
+          <a routerLink="/masters/customers" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Customer Master</a>
+          <a routerLink="/masters/firm" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Firm Master</a>
+          <a routerLink="/masters/salesman" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Salesman Master</a>
+          <a routerLink="/masters/area" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Area Master</a>
+          <a routerLink="/masters/tax-master" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Tax Master</a>
         </div>
         }
       </div>
       } @else {
-      <!-- Collapsed: Masters icons -->
-      <a routerLink="/masters/suppliers" routerLinkActive="nav-link--active" class="nav-link" title="Supplier Master">
-        <span class="nav-icon">🏭</span>
-      </a>
-      <a routerLink="/masters/customers" routerLinkActive="nav-link--active" class="nav-link" title="Customer Master">
-        <span class="nav-icon">👥</span>
-      </a>
-      <a routerLink="/masters/firm" routerLinkActive="nav-link--active" class="nav-link" title="Firm Master">
-        <span class="nav-icon">🏢</span>
-      </a>
-      <a routerLink="/masters/salesman" routerLinkActive="nav-link--active" class="nav-link" title="Salesman Master">
-        <span class="nav-icon">🧑‍💼</span>
-      </a>
-      <a routerLink="/masters/area" routerLinkActive="nav-link--active" class="nav-link" title="Area Master">
-        <span class="nav-icon">📍</span>
-      </a>
-      <a routerLink="/masters/tax-master" routerLinkActive="nav-link--active" class="nav-link" title="Tax Master">
-        <span class="nav-icon">🧾</span>
-      </a>
+      <a routerLink="/masters/suppliers" routerLinkActive="nav-link--active" class="nav-link"
+        title="Supplier Master"><span class="nav-icon">🏭</span></a>
+      <a routerLink="/masters/customers" routerLinkActive="nav-link--active" class="nav-link"
+        title="Customer Master"><span class="nav-icon">👥</span></a>
+      <a routerLink="/masters/firm" routerLinkActive="nav-link--active" class="nav-link" title="Firm Master"><span
+          class="nav-icon">🏢</span></a>
+      <a routerLink="/masters/salesman" routerLinkActive="nav-link--active" class="nav-link"
+        title="Salesman Master"><span class="nav-icon">🧑‍💼</span></a>
+      <a routerLink="/masters/area" routerLinkActive="nav-link--active" class="nav-link" title="Area Master"><span
+          class="nav-icon">📍</span></a>
+      <a routerLink="/masters/tax-master" routerLinkActive="nav-link--active" class="nav-link" title="Tax Master"><span
+          class="nav-icon">🧾</span></a>
       }
+
+      <!-- Reports group -->
+      @if (!sidebarCollapsed()) {
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <button class="nav-link nav-link--group" [class.nav-link--group-open]="reportsOpen()"
+          (click)="reportsOpen.set(!reportsOpen())">
+          <span class="nav-icon">📊</span>
+          <span class="nav-group__label">Reports</span>
+          <span class="nav-group__caret" [class.rotated]="reportsOpen()">▾</span>
+        </button>
+        @if (reportsOpen()) {
+        <div class="nav-submenu" @submenuAnim>
+          <a routerLink="/reports/sales-statement" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Sales Statement</a>
+          <a routerLink="/reports/purchase-report" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Purchase Report</a>
+          <a routerLink="/reports/gst-report" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>GST Report</a>
+          <a routerLink="/reports/stock-report" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Stock Report</a>
+          <a routerLink="/reports/expiry" routerLinkActive="nav-sublink--active" class="nav-sublink"><span
+              class="sublink-dot"></span>Expiry Report</a>
+        </div>
+        }
+      </div>
+      } @else {
+      <a routerLink="/reports/sales-statement" routerLinkActive="nav-link--active" class="nav-link"
+        title="Reports"><span class="nav-icon">📊</span></a>
+      }
+
+      <!-- Settings -->
+      <div class="nav-divider"></div>
+      <a routerLink="/settings" routerLinkActive="nav-link--active" class="nav-link"
+        [title]="sidebarCollapsed() ? 'Settings' : ''">
+        <span class="nav-icon">⚙</span>
+        @if (!sidebarCollapsed()) { <span>Settings</span> }
+      </a>
     </nav>
 
-    <!-- Reports & Settings -->
-    <div class="sidebar__divider"></div>
-    <a routerLink="/reports/sales-statement" routerLinkActive="nav-link--active" class="nav-link"
-      [title]="sidebarCollapsed() ? 'Sales Statement' : ''">
-      <span class="nav-icon">📊</span>
-      @if (!sidebarCollapsed()) { <span>Sales Statement</span> }
-    </a>
-    <a routerLink="/settings" routerLinkActive="nav-link--active" class="nav-link"
-      [title]="sidebarCollapsed() ? 'Settings' : ''">
-      <span class="nav-icon">⚙</span>
-      @if (!sidebarCollapsed()) { <span>Settings</span> }
-    </a>
-
-    <!-- Footer: user + logout -->
     <div class="sidebar__footer">
       <div class="user-pill">
         <div class="user-avatar" [title]="userName()">{{ userInitial() }}</div>
         @if (!sidebarCollapsed()) {
         <div class="user-info">
-          <span class="user-name truncate">{{ userName() }}</span>
+          <span class="user-name">{{ userName() }}</span>
           <span class="user-role">{{ userRole() }}</span>
         </div>
         }
       </div>
       <button class="logout-btn" (click)="logout()" [title]="sidebarCollapsed() ? 'Logout' : ''">
-        <span class="logout-icon">⏻</span>
+        <span>⏻</span>
         @if (!sidebarCollapsed()) { <span>Logout</span> }
       </button>
     </div>
   </aside>
 
-  <!-- ══════════════════════════════════
-             MAIN CONTENT
-        ══════════════════════════════════ -->
+  <!-- ══ MAIN ══ -->
   <main class="main-content">
     <div [@routeAnim]="route()" class="route-wrapper">
       <router-outlet></router-outlet>
     </div>
   </main>
 
-  <!-- ══════════════════════════════════
-             MOBILE BOTTOM NAVIGATION
-             (visible only on phones ≤ 768px)
-        ══════════════════════════════════ -->
-  <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+  <!-- ══ MOBILE BOTTOM NAV ══ -->
+  <nav class="mobile-nav">
     <a routerLink="/dashboard" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
-      <span class="mobile-nav-icon">⊞</span>
-      <span class="mobile-nav-label">Dashboard</span>
+      <span class="mobile-nav-icon">⊞</span><span class="mobile-nav-label">Dashboard</span>
     </a>
     <a routerLink="/inventory" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
-      <span class="mobile-nav-icon">💊</span>
-      <span class="mobile-nav-label">Inventory</span>
+      <span class="mobile-nav-icon">💊</span><span class="mobile-nav-label">Medicines</span>
+    </a>
+    <a routerLink="/purchase" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
+      <span class="mobile-nav-icon">📥</span><span class="mobile-nav-label">Purchase</span>
     </a>
     <a routerLink="/billing" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
-      <span class="mobile-nav-icon">🧾</span>
-      <span class="mobile-nav-label">Billing</span>
+      <span class="mobile-nav-icon">🧾</span><span class="mobile-nav-label">Billing</span>
     </a>
-    <a routerLink="/stock-ledger" routerLinkActive="mobile-nav-item--active" class="mobile-nav-item">
-      <span class="mobile-nav-icon">📋</span>
-      <span class="mobile-nav-label">Ledger</span>
-    </a>
-    <!-- Masters trigger -->
-    <button class="mobile-nav-item" [class.mobile-nav-item--active]="isOnMasters()"
-      (click)="mobileMastersOpen.set(!mobileMastersOpen())">
-      <span class="mobile-nav-icon">🗂</span>
-      <span class="mobile-nav-label">Masters</span>
+    <button class="mobile-nav-item" [class.mobile-nav-item--active]="isMobileMenuOpen()"
+      (click)="isMobileMenuOpen.set(!isMobileMenuOpen())">
+      <span class="mobile-nav-icon">⋯</span><span class="mobile-nav-label">More</span>
     </button>
-    <button class="mobile-nav-item" (click)="logout()">
+     <button class="mobile-nav-item" (click)="logout()">
       <span class="mobile-nav-icon">⏻</span>
       <span class="mobile-nav-label">Logout</span>
     </button>
   </nav>
 
-  <!-- Mobile Masters sheet (slides up) -->
-  @if (mobileMastersOpen()) {
-  <div class="mobile-sheet-overlay" (click)="mobileMastersOpen.set(false)"></div>
+  <!-- Mobile More sheet -->
+  @if (isMobileMenuOpen()) {
+  <div class="mobile-sheet-overlay" (click)="isMobileMenuOpen.set(false)"></div>
   <div class="mobile-masters-sheet" @mobileMenuAnim>
     <div class="mobile-sheet-handle"></div>
-    <div class="mobile-sheet-title">Masters</div>
-    <a routerLink="/masters/suppliers" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">🏭</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Supplier Master</strong>
-        <span>Manage medicine suppliers & distributors</span>
-      </div>
+    <div class="mobile-sheet-title">Navigation</div>
+
+    <a routerLink="/stock-ledger" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)">
+      <span class="mobile-sheet-link__icon">📋</span>
+      <div class="mobile-sheet-link__text"><strong>Stock Ledger</strong><span>View stock movements</span></div>
       <span class="mobile-sheet-link__arrow">›</span>
     </a>
-    <a routerLink="/masters/customers" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">👥</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Customer Master</strong>
-        <span>Manage patients & customers</span>
-      </div>
-      <span class="mobile-sheet-link__arrow">›</span>
+
+    <div class="mobile-sheet-group-label">Masters</div>
+    <a routerLink="/masters/suppliers" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">🏭</span>
+      <div class="mobile-sheet-link__text"><strong>Supplier Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
     </a>
-    <a routerLink="/masters/firm" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">🏢</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Firm Master</strong>
-        <span>Your pharmacy's invoice details</span>
-      </div>
-      <span class="mobile-sheet-link__arrow">›</span>
+    <a routerLink="/masters/customers" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">👥</span>
+      <div class="mobile-sheet-link__text"><strong>Customer Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
     </a>
-    <a routerLink="/masters/salesman" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">🧑‍💼</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Salesman Master</strong>
-        <span>Manage sales staff</span>
-      </div>
-      <span class="mobile-sheet-link__arrow">›</span>
+    <a routerLink="/masters/firm" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">🏢</span>
+      <div class="mobile-sheet-link__text"><strong>Firm Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
     </a>
-    <a routerLink="/masters/area" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">📍</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Area Master</strong>
-        <span>Manage territories</span>
-      </div>
-      <span class="mobile-sheet-link__arrow">›</span>
+    <a routerLink="/masters/salesman" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">🧑‍💼</span>
+      <div class="mobile-sheet-link__text"><strong>Salesman Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
     </a>
-    <a routerLink="/masters/tax-master" routerLinkActive="mobile-sheet-link--active" class="mobile-sheet-link"
-      (click)="mobileMastersOpen.set(false)">
-      <span class="mobile-sheet-link__icon">🧾</span>
-      <div class="mobile-sheet-link__text">
-        <strong>Tax Master</strong>
-        <span>Manage GST slabs</span>
-      </div>
-      <span class="mobile-sheet-link__arrow">›</span>
+    <a routerLink="/masters/area" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">📍</span>
+      <div class="mobile-sheet-link__text"><strong>Area Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
     </a>
-    <button class="mobile-sheet-cancel" (click)="mobileMastersOpen.set(false)">Cancel</button>
+    <a routerLink="/masters/tax-master" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">🧾</span>
+      <div class="mobile-sheet-link__text"><strong>Tax Master</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+
+    <div class="mobile-sheet-group-label">Reports</div>
+    <a routerLink="/reports/sales-statement" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">📈</span>
+      <div class="mobile-sheet-link__text"><strong>Sales Statement</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+    <a routerLink="/reports/purchase-report" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">📥</span>
+      <div class="mobile-sheet-link__text"><strong>Purchase Report</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+    <a routerLink="/reports/gst-report" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">🧾</span>
+      <div class="mobile-sheet-link__text"><strong>GST Report</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+    <a routerLink="/reports/stock-report" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">📦</span>
+      <div class="mobile-sheet-link__text"><strong>Stock Report</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+    <a routerLink="/reports/expiry" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">📅</span>
+      <div class="mobile-sheet-link__text"><strong>Expiry Report</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+
+    <a routerLink="/settings" class="mobile-sheet-link" (click)="isMobileMenuOpen.set(false)"><span
+        class="mobile-sheet-link__icon">⚙</span>
+      <div class="mobile-sheet-link__text"><strong>Settings</strong></div><span
+        class="mobile-sheet-link__arrow">›</span>
+    </a>
+
+    <button class="mobile-sheet-cancel" (click)="isMobileMenuOpen.set(false)">Close</button>
   </div>
   }
-
 </div>
 } @else {
-<div class="auth-layout">
-  <router-outlet></router-outlet>
-</div>
+<div class="auth-layout"><router-outlet></router-outlet></div>
 }

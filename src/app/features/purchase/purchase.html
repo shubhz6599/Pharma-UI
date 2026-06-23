@@ -1,0 +1,241 @@
+<div class="page-wrap">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Purchase Entry</h1>
+        <p class="page-subtitle">Record supplier invoices — increases stock</p>
+      </div>
+      <div class="header-tabs">
+        <button class="tab-btn" [class.tab-btn--active]="tab()==='new'" (click)="tab.set('new')">📥 New Purchase</button>
+        <button class="tab-btn" [class.tab-btn--active]="tab()==='history'" (click)="switchHistory()">📋 History</button>
+      </div>
+    </header>
+
+    <!-- ══ NEW PURCHASE ══ -->
+    @if (tab() === 'new') {
+      <div class="purchase-layout" @fadeIn>
+        <div class="purchase-left">
+
+          <!-- Supplier -->
+          <div class="section-card">
+            <div class="section-title">🏭 Supplier & Invoice Details</div>
+            <div class="form-grid-2 mt-2">
+              <div class="field field--span2">
+                <label class="field__label">Supplier <span class="req">*</span></label>
+                <div class="search-wrap">
+                  <span class="search-wrap__icon">⌕</span>
+                  <input type="text" [(ngModel)]="supplierSearch" (ngModelChange)="searchSuppliers($event)"
+                    class="field__input search-wrap__input" placeholder="Search supplier..." autocomplete="off" />
+                  @if (selectedSupplier()) { <button class="search-wrap__clear" (click)="clearSupplier()">✕</button> }
+                </div>
+                @if (supplierResults().length > 0) {
+                  <div class="dropdown-list" @slideDown>
+                    @for (s of supplierResults(); track s._id) {
+                      <div class="dropdown-item" (click)="selectSupplier(s)">
+                        <strong>{{ s.name }}</strong>
+                        <span>{{ s.phone }} @if (s.address.city) { · {{ s.address!.city }} }</span>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (selectedSupplier()) {
+                  <div class="selected-pill" @fadeIn>
+                    <span>✓ {{ selectedSupplier()!.name }}</span>
+                    <span class="selected-pill__meta">{{ selectedSupplier()!.phone }}</span>
+                  </div>
+                }
+              </div>
+              <div class="field">
+                <label class="field__label">Invoice Number <span class="req">*</span></label>
+                <input [(ngModel)]="invoiceNo" type="text" class="field__input" placeholder="INV/2025/001" />
+              </div>
+              <div class="field">
+                <label class="field__label">Invoice Date <span class="req">*</span></label>
+                <input [(ngModel)]="invoiceDate" type="date" class="field__input" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Search -->
+          <div class="section-card">
+            <div class="section-title">💊 Add Medicines</div>
+            <div class="search-wrap mt-2">
+              <span class="search-wrap__icon">⌕</span>
+              <input type="text" [(ngModel)]="prodSearch" (ngModelChange)="searchProducts($event)"
+                class="field__input search-wrap__input" placeholder="Search medicine by name, generic, HSN..." autocomplete="off" />
+              @if (prodSearchLoading()) { <span class="spinner spinner--sm" style="position:absolute;right:.875rem"></span> }
+            </div>
+            @if (prodResults().length > 0) {
+              <div class="dropdown-list" @slideDown>
+                @for (p of prodResults(); track p._id) {
+                  <div class="dropdown-item prod-item" (click)="addToCart(p)">
+                    <div class="prod-info">
+                      <strong>{{ p.productName }}</strong>
+                      <span>{{ p.mfgCompany }} @if (p.genericName) { · {{ p.genericName }} } @if (p.hsnNo) { · HSN: {{ p.hsnNo }} }</span>
+                    </div>
+                    <button class="add-btn" tabindex="-1">+ Add</button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Cart -->
+          <div class="section-card">
+            <div class="cart-top">
+              <div class="section-title">📦 Items <span class="cart-count">{{ cart().length }}</span></div>
+              @if (cart().length) { <button class="btn btn--ghost btn--xs" (click)="cart.set([])">✕ Clear</button> }
+            </div>
+
+            @if (cart().length === 0) {
+              <div class="cart-empty"><span>📦</span><p>Search and add medicines above</p></div>
+            } @else {
+              <div class="cart-table">
+                <div class="cart-head">
+                  <span>Medicine</span><span>Batch</span><span>Expiry</span><span>Qty</span><span>Free</span><span>Scheme</span><span>PTR</span><span>Disc%</span><span>GST%</span><span></span>
+                </div>
+                @for (item of cart(); track item.productId + item.batchNo; let i = $index) {
+                  <div class="cart-row">
+                    <div class="cart-prod">
+                      <div class="cart-prod__name">{{ item.productName }}</div>
+                    </div>
+                    <input type="text" [(ngModel)]="item.batchNo" class="cart-input" placeholder="Batch No." />
+                    <input type="month" [(ngModel)]="item.expDate" class="cart-input" />
+                    <input type="number" [(ngModel)]="item.quantity" min="1" class="cart-input cart-input--num" placeholder="Qty" />
+                    <input type="number" [(ngModel)]="item.freeQuantity" min="0" class="cart-input cart-input--num" placeholder="Free" />
+                    <input type="text" [(ngModel)]="item.schemeNote" class="cart-input" placeholder="e.g. 10+1" />
+                    <input type="number" [(ngModel)]="item.ptr" min="0" step="0.01" class="cart-input cart-input--num" placeholder="PTR" />
+                    <input type="number" [(ngModel)]="item.discPercent" min="0" max="100" class="cart-input cart-input--num" placeholder="0" />
+                    <input type="number" [(ngModel)]="item.cgstPercent" min="0" step="0.5" class="cart-input cart-input--num" placeholder="6" />
+                    <button class="rm-btn" (click)="removeItem(i)">✕</button>
+                  </div>
+                }
+              </div>
+
+              <!-- MRP for each item (extra row) -->
+              <div class="mrp-grid">
+                @for (item of cart(); track item.productId; let i = $index) {
+                  <div class="mrp-row">
+                    <span class="mrp-row__name">{{ item.productName }}</span>
+                    <label class="mrp-row__label">MRP (₹)</label>
+                    <input type="number" [(ngModel)]="item.mrp" min="0" step="0.01" class="cart-input cart-input--num" placeholder="MRP" />
+                    <label class="mrp-row__label">SGST%</label>
+                    <input type="number" [(ngModel)]="item.sgstPercent" min="0" step="0.5" class="cart-input cart-input--num" placeholder="6" />
+                    <span class="line-total">₹{{ calcLine(item) | number:'1.2-2' }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Payment -->
+          <div class="section-card">
+            <div class="section-title">💳 Payment</div>
+            <div class="form-grid-2 mt-2">
+              <div class="field">
+                <label class="field__label">Payment Status</label>
+                <select [(ngModel)]="paymentStatus" class="field__input">
+                  <option value="unpaid">Unpaid</option>
+                  <option value="partial">Partial</option>
+                  <option value="paid">Fully Paid</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field__label">Amount Paid (₹)</label>
+                <input [(ngModel)]="amountPaid" type="number" min="0" step="0.01" class="field__input" placeholder="0.00" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Summary -->
+        <div class="purchase-right">
+          <div class="summary-card">
+            <div class="summary-title">Purchase Summary</div>
+            @if (cart().length === 0) {
+              <p class="summary-empty">Add medicines to see totals</p>
+            } @else {
+              <div class="totals">
+                @for (item of cart(); track item.productId) {
+                  <div class="total-row"><span class="truncate">{{ item.productName }} ×{{ item.quantity }}{{ item.freeQuantity > 0 ? '+' + item.freeQuantity : '' }}</span><span>₹{{ calcLine(item) | number:'1.2-2' }}</span></div>
+                }
+                <hr class="divider" />
+                <div class="total-row total-row--grand"><span>Grand Total</span><span>₹{{ grandTotal() | number:'1.2-2' }}</span></div>
+                @if (amountPaid > 0) {
+                  <div class="total-row"><span>Amount Paid</span><span>₹{{ amountPaid | number:'1.2-2' }}</span></div>
+                  <div class="total-row" [class.total-row--due]="grandTotal() - amountPaid > 0">
+                    <span>Balance Due</span><span>₹{{ (grandTotal() - amountPaid) | number:'1.2-2' }}</span>
+                  </div>
+                }
+              </div>
+              <button class="btn btn--primary btn--full mt-4" (click)="savePurchase()" [disabled]="saveLoading() || !canSave()">
+                @if (saveLoading()) { <span class="btn-spinner"></span> Saving... } @else { 📥 Save Purchase & Update Stock }
+              </button>
+              @if (!canSave()) {
+                <p class="save-hint">{{ !selectedSupplier() ? 'Select a supplier' : !invoiceNo ? 'Enter invoice number' : !invoiceDate ? 'Enter invoice date' : 'Fill all item details' }}</p>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ══ HISTORY ══ -->
+    @if (tab() === 'history') {
+      <div @fadeIn>
+        <div class="history-filters">
+          <div class="search-field" style="flex:1;min-width:200px">
+            <span class="search-field__icon">⌕</span>
+            <input type="text" [(ngModel)]="histSearch" (ngModelChange)="onHistSearch()" class="field__input search-field__input" placeholder="Search purchase no, invoice no..." />
+          </div>
+          <input type="date" [(ngModel)]="histFrom" (change)="loadHistory()" class="field__input" style="width:150px" placeholder="From" />
+          <input type="date" [(ngModel)]="histTo"   (change)="loadHistory()" class="field__input" style="width:150px" placeholder="To" />
+        </div>
+
+        <div class="table-card">
+          @if (histLoading()) {
+            <div class="skeleton-rows">
+              @for (i of [1,2,3,4,5]; track i) {
+                <div class="skeleton-row-item">
+                  @for (w of ['90px','130px','120px','80px','90px','100px']; track w) { <div class="skeleton skeleton--sm" [style.width]="w"></div> }
+                </div>
+              }
+            </div>
+          } @else if (purchases().length === 0) {
+            <div class="empty-state"><span class="empty-state__icon">📥</span><h3 class="empty-state__title">No purchases yet</h3></div>
+          } @else {
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr><th>Purchase No</th><th>Invoice No</th><th>Date</th><th>Supplier</th><th class="td--center">Items</th><th class="td--number">Total</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  @for (p of purchases(); track p._id) {
+                    <tr class="table-row">
+                      <td><span class="bill-tag">{{ p.purchaseNo }}</span></td>
+                      <td class="td--mono">{{ p.invoiceNo }}</td>
+                      <td class="td--muted">{{ p.invoiceDate | date:'dd MMM yy' }}</td>
+                      <td>{{ p.supplierName }}</td>
+                      <td class="td--center">{{ p.items.length || 0 }}</td>
+                      <td class="td--number td--teal">₹{{ p.grandTotal | number:'1.2-2' }}</td>
+                      <td>
+                        <span class="badge" [class.badge--teal]="p.paymentStatus==='paid'" [class.badge--warn]="p.paymentStatus==='partial'" [class.badge--neutral]="p.paymentStatus==='unpaid'">
+                          {{ p.paymentStatus }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (histPag && histPag.totalPages > 1) {
+              <div class="pagination">
+                <button class="page-btn" [disabled]="histPage===1" (click)="histPage=histPage-1;loadHistory()">← Prev</button>
+                <span class="page-info">Page {{ histPage }} / {{ histPag.totalPages }}</span>
+                <button class="page-btn" [disabled]="histPage===histPag.totalPages" (click)="histPage=histPage+1;loadHistory()">Next →</button>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>

@@ -3,7 +3,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { ReportsService, SalesStatement } from '../../../../core/services/reports';
+import { ReportsService } from '../../../../core/services/reports';
 import { Toast } from '../../../../core/services/toast';
 
 
@@ -21,7 +21,7 @@ export class SalesStatementComponent implements OnInit {
   private svc   = inject(ReportsService);
   private toast = inject(Toast);
 
-  statement = signal<SalesStatement | null>(null);
+  statement = signal<any | null>(null);
   loading   = signal(false);
 
   dateFrom = '';
@@ -53,14 +53,14 @@ export class SalesStatementComponent implements OnInit {
   }
 
   exportCsv(): void {
-    const s = this.statement();
+    const s:any = this.statement();
     if (!s) return;
     const header = ['Bill No', 'Date', 'Customer', 'Salesman', 'Items', 'Discount', 'Tax', 'Total'];
-    const rows = s.bills.map(b => [
+    const rows = s.bills.map((b:any) => [
       b.billNo, new Date(b.billDate).toLocaleDateString('en-IN'), b.customerName || 'Walk-in',
       b.salesman || '', b.itemCount, b.discount.toFixed(2), b.tax.toFixed(2), b.grandTotal.toFixed(2),
     ]);
-    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const csv = [header, ...rows].map(r => r.map((c:any) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');

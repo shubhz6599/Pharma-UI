@@ -1,0 +1,71 @@
+ <div class="page-wrap">
+      <header class="page-header">
+        <div><h1 class="page-title">Stock Report</h1><p class="page-subtitle">Batch-wise current stock levels</p></div>
+        @if (data()) { <button class="btn btn--ghost" (click)="exportCsv()">⬇ Export CSV</button> }
+      </header>
+
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="field"><label class="field__label">Category</label>
+            <select [(ngModel)]="category" class="field__input">
+              <option value="">All Categories</option>
+              @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+            </select>
+          </div>
+          <div class="field field--check">
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="lowStockOnly" />
+              <span>Low stock only</span>
+            </label>
+          </div>
+          <div class="field filter-btn"><button class="btn btn--primary" (click)="load()" [disabled]="loading()">
+            @if (loading()) { <span class="btn-spinner"></span> } Generate
+          </button></div>
+        </div>
+      </div>
+
+      @if (data()) {
+        <div class="kpi-strip" @fadeIn>
+          <div class="kpi-chip"><span class="kpi-chip__val">{{ data()!.summary.totalProducts }}</span><span class="kpi-chip__label">Products</span></div>
+          <div class="kpi-chip"><span class="kpi-chip__val">{{ data()!.summary.totalBatches }}</span><span class="kpi-chip__label">Batches</span></div>
+          <div class="kpi-chip kpi-chip--danger"><span class="kpi-chip__val">{{ data()!.summary.lowStockCount }}</span><span class="kpi-chip__label">Low Stock</span></div>
+          <div class="kpi-chip kpi-chip--highlight"><span class="kpi-chip__val">₹{{ data()!.summary.totalStockValue | number:'1.0-0' }}</span><span class="kpi-chip__label">Stock Value (MRP)</span></div>
+        </div>
+
+        <div class="table-card" @fadeIn>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Medicine</th><th>Generic</th><th>Company</th><th>Category</th><th>Batch</th><th>Expiry</th><th class="td--number">Qty</th><th class="td--number">MRP</th><th class="td--number">PTR</th><th>Status</th></tr></thead>
+              <tbody>
+                @for (r of data()!.rows; track r.productId) {
+                  @for (b of r.batches; track b.batchNo; let first = $first) {
+                    <tr class="table-row" [class.table-row--first]="first">
+                      @if (first) {
+                        <td [attr.rowspan]="r.batches.length" class="td--primary td--name">{{ r.productName }}</td>
+                        <td [attr.rowspan]="r.batches.length" class="td--muted">{{ r.genericName || '—' }}</td>
+                        <td [attr.rowspan]="r.batches.length" class="td--muted">{{ r.mfgCompany }}</td>
+                        <td [attr.rowspan]="r.batches.length">{{ r.category || '—' }}</td>
+                      }
+                      <td class="td--mono">{{ b.batchNo }}</td>
+                      <td [class.td--danger]="isExpired(b.expDate)" [class.td--warn]="isExpiringSoon(b.expDate)">{{ b.expDate | date:'MM/yyyy' }}</td>
+                      <td class="td--number" [class.td--danger]="b.quantity < r.minStockLevel">{{ b.quantity }}</td>
+                      <td class="td--number">₹{{ b.mrp | number:'1.2-2' }}</td>
+                      <td class="td--number">₹{{ b.ptr | number:'1.2-2' }}</td>
+                      @if (first) {
+                        <td [attr.rowspan]="r.batches.length">
+                          <span class="badge" [class.badge--danger]="r.totalStock < r.minStockLevel" [class.badge--teal]="r.totalStock >= r.minStockLevel">
+                            {{ r.totalStock < r.minStockLevel ? 'Low' : 'OK' }} ({{ r.totalStock }})
+                          </span>
+                        </td>
+                      }
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      } @else if (!loading()) {
+        <div class="empty-state"><span class="empty-state__icon">📦</span><h3 class="empty-state__title">Click Generate to view stock</h3></div>
+      }
+    </div>
